@@ -892,5 +892,41 @@
     "seen": 1794625468.430198,
     "ast_hash": "b6216d61c03e6ce0c9aea6ca7808f7ca",
     "semantic_hash": "b6216d61c03e6ce0c9aea6ca7808f7ca"
+  },
+  "docs/ARCHITECTURE_AND_SEQUENCE.md": {
+    "mtime": 1794626710.894162,
+    "seen": 1794626791.7223957,
+    "ast_hash": "f71d18fce99960d38ce2dc12af048adb",
+    "semantic_hash": "f71d18fce99960d38ce2dc12af048adb"
+  },
+  "docs/DFD.md": {
+    "mtime": 1794626643.6553345,
+    "seen": 1794626791.7223988,
+    "ast_hash": "c90c084bd6087a5eeccbb2f9c4bbfcb0",
+    "semantic_hash": "c90c084bd6087a5eeccbb2f9c4bbfcb0"
+  },
+  "docs/ERD.md": {
+    "mtime": 1794626607.0959141,
+    "seen": 1794626791.7224,
+    "ast_hash": "fe96ede0acc076c765a92521e264b3c4",
+    "semantic_hash": "fe96ede0acc076c765a92521e264b3c4"
+  },
+  "docs/PRD.md": {
+    "mtime": 1794626558.150408,
+    "seen": 1794626791.7224016,
+    "ast_hash": "46f23ee11d1ac44c012a1ed00e81028d",
+    "semantic_hash": "46f23ee11d1ac44c012a1ed00e81028d"
+  },
+  "docs/README.md": {
+    "mtime": 1794626512.5978017,
+    "seen": 1794626791.722403,
+    "ast_hash": "0a12c491b060465dfbc1922a3ad3b208",
+    "semantic_hash": "0a12c491b060465dfbc1922a3ad3b208"
+  },
+  "docs/USE_CASE.md": {
+    "mtime": 1794626678.0461514,
+    "seen": 1794626791.7224255,
+    "ast_hash": "c529b21163ec2482113b325670ad6e3c",
+    "semantic_hash": "c529b21163ec2482113b325670ad6e3c"
   }
 }
