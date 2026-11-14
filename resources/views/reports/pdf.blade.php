@@ -32,6 +32,8 @@
 <h1>Laporan Penjualan – Kobana Fried Chicken</h1>
 <p class="subtitle">
     Periode: {{ $dateFrom->translatedFormat('d F Y') }} – {{ $dateTo->translatedFormat('d F Y') }} |
+    Cabang: {{ $branchName }} |
+    Metode: {{ $paymentMethod ? strtoupper($paymentMethod) : 'Semua Metode' }} |
     Dicetak: {{ now()->format('d/m/Y H:i') }}
 </p>
 

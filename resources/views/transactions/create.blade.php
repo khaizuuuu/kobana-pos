@@ -4,9 +4,37 @@
 @section('page-title', 'Kasir & Input Transaksi Baru')
 
 @section('content')
-<form id="transaction-form" method="POST" action="{{ route('transactions.store') }}">
+<form id="transaction-form" method="POST" action="{{ route('transactions.store') }}" enctype="multipart/form-data">
     @csrf
     <input type="hidden" name="cart" id="cart-input" value="[]" />
+
+    <!-- Bar Informasi Cabang & Kasir -->
+    <div class="card shadow-sm mb-4 border-start border-4 border-danger">
+        <div class="card-body py-2 px-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-danger p-2"><i class="bi bi-shop fs-6"></i></span>
+                <div>
+                    @if($userBranch)
+                        <div class="fw-bold text-dark fs-6">{{ $userBranch->name }}</div>
+                        <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ $userBranch->address }}</small>
+                        <input type="hidden" name="branch_id" value="{{ $userBranch->id }}">
+                    @else
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="branch_select" class="fw-bold text-dark small mb-0 text-nowrap">Pilih Cabang:</label>
+                            <select name="branch_id" id="branch_select" class="form-select form-select-sm" style="min-width: 220px;" required>
+                                @foreach($branches as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }} ({{ $b->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            <div class="text-md-end small text-muted">
+                Kasir Bertugas: <strong class="text-dark">{{ auth()->user()->name }}</strong>
+            </div>
+        </div>
+    </div>
 
     <div class="row g-4">
         <!-- Daftar Menu -->
@@ -83,7 +111,7 @@
                 </div>
 
                 <div class="card-body p-0">
-                    <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+                    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
                         <table class="table table-sm table-hover align-middle mb-0" id="cart-table">
                             <thead class="table-light">
                                 <tr>
@@ -115,6 +143,107 @@
                         <span class="fw-bold fs-4 text-success" id="summary-total-amount">Rp 0</span>
                     </div>
 
+                    <!-- Pilihan Metode Pembayaran -->
+                    <div class="mb-3 border rounded-3 p-3 bg-white">
+                        <label class="form-label fw-bold small text-dark d-block mb-2">
+                            <i class="bi bi-credit-card-2-front text-primary me-1"></i>Metode Pembayaran
+                        </label>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="payment_method" id="pay-cash" value="cash" checked autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm w-100 py-2 text-center" for="pay-cash">
+                                    <i class="bi bi-cash-stack d-block fs-5 mb-1"></i>
+                                    <span class="small fw-semibold">Cash (Tunai)</span>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="payment_method" id="pay-qris" value="qris" autocomplete="off">
+                                <label class="btn btn-outline-primary btn-sm w-100 py-2 text-center" for="pay-qris">
+                                    <i class="bi bi-qr-code-scan d-block fs-5 mb-1"></i>
+                                    <span class="small fw-semibold">QRIS</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Opsi Pembayaran Tunai (Cash) -->
+                        <div id="cash-panel">
+                            <label class="form-label small fw-semibold text-muted mb-1">Uang Tunai Diterima (Rp)</label>
+                            <input type="number" name="cash_amount" id="cash_input" class="form-control form-control-sm mb-2 fw-bold" placeholder="Contoh: 50000" min="0">
+                            <div class="d-flex gap-1 mb-2 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 small quick-cash-btn" data-val="exact">Uang Pas</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 small quick-cash-btn" data-val="20000">20rb</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 small quick-cash-btn" data-val="50000">50rb</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 small quick-cash-btn" data-val="100000">100rb</button>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border">
+                                <span class="small text-muted fw-semibold">Kembalian:</span>
+                                <span class="fw-bold text-primary fs-6" id="change-display">Rp 0</span>
+                            </div>
+                        </div>
+
+                        <!-- Opsi QRIS -->
+                        <div id="qris-panel" style="display: none;">
+                            <div class="alert alert-primary py-2 px-3 small mb-2">
+                                <i class="bi bi-qr-code me-1"></i>
+                                <strong>Scan QRIS Kobana</strong><br>
+                                Tunjukkan QR Code fisik/layar ke pelanggan dan pastikan notifikasi pembayaran telah berhasil.
+                            </div>
+                            <input type="text" name="payment_note" id="qris_ref" class="form-control form-control-sm mb-2" placeholder="No. Referensi / RRN QRIS (opsional)">
+
+                            <!-- Bukti Foto QRIS (Kamera / File) -->
+                            <div class="border rounded-2 p-2 bg-light">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small fw-bold text-dark">
+                                        <i class="bi bi-camera me-1 text-primary"></i> Foto Bukti QRIS
+                                    </span>
+                                    <span class="badge bg-secondary-subtle text-muted" style="font-size: 10px;">Opsional</span>
+                                </div>
+
+                                <!-- Camera Streaming Container -->
+                                <div id="camera-stream-box" class="mb-2 text-center" style="display: none;">
+                                    <video id="camera-video" playsinline autoplay muted class="w-100 rounded border bg-dark" style="max-height: 200px; object-fit: cover;"></video>
+                                    <canvas id="camera-canvas" class="d-none"></canvas>
+                                    <div class="d-flex justify-content-center gap-2 mt-2">
+                                        <button type="button" class="btn btn-sm btn-primary" id="btn-snap-photo">
+                                            <i class="bi bi-camera-fill me-1"></i> Ambil Foto
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-stop-camera">
+                                            Batal
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Buttons to Trigger Camera / Upload -->
+                                <div id="camera-buttons-group" class="d-flex gap-2 mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary flex-fill" id="btn-open-camera">
+                                        <i class="bi bi-camera-fill me-1"></i> Buka Kamera
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary flex-fill" id="btn-pick-file">
+                                        <i class="bi bi-upload me-1"></i> Unggah File
+                                    </button>
+                                </div>
+
+                                <!-- Inputs (Hidden) -->
+                                <input type="hidden" name="payment_proof_camera" id="payment_proof_camera">
+                                <input type="file" name="payment_proof_file" id="payment_proof_file" class="d-none" accept="image/*" capture="environment">
+
+                                <!-- Alert Feedback -->
+                                <div id="camera-error-msg" class="alert alert-warning py-1 px-2 small mb-2" style="display: none;"></div>
+
+                                <!-- Preview Image Box -->
+                                <div id="proof-preview-box" class="text-center p-2 border rounded bg-white" style="display: none;">
+                                    <img id="proof-preview-img" src="" alt="Bukti QRIS" class="img-thumbnail mb-2" style="max-height: 140px; object-fit: contain;">
+                                    <div class="d-flex justify-content-center align-items-center gap-2">
+                                        <span class="badge bg-success-subtle text-success small"><i class="bi bi-check2-circle me-1"></i>Foto Siap</span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 small" id="btn-delete-proof">
+                                            <i class="bi bi-trash"></i> Hapus
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="button" class="btn btn-success w-100 py-2 fw-semibold fs-6 shadow-sm" id="btn-submit-order" disabled>
                         <i class="bi bi-check2-circle me-1"></i> Proses & Simpan Transaksi
                     </button>
@@ -129,17 +258,67 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     let cart = [];
+    let currentTotal = 0;
 
     const formatRupiah = (val) => 'Rp ' + Number(val).toLocaleString('id-ID', { minimumFractionDigits: 0 });
 
     const cartInput = document.getElementById('cart-input');
     const cartBody = document.getElementById('cart-items-body');
-    const emptyRow = document.getElementById('empty-cart-row');
     const totalItemsEl = document.getElementById('summary-total-items');
     const totalAmountEl = document.getElementById('summary-total-amount');
     const submitBtn = document.getElementById('btn-submit-order');
     const clearBtn = document.getElementById('btn-clear-cart');
     const menuSearch = document.getElementById('menu-search');
+
+    const cashInput = document.getElementById('cash_input');
+    const changeDisplay = document.getElementById('change-display');
+    const cashPanel = document.getElementById('cash-panel');
+    const qrisPanel = document.getElementById('qris-panel');
+
+    function updateChange() {
+        const payMethod = document.querySelector('input[name="payment_method"]:checked')?.value || 'cash';
+        if (payMethod === 'cash') {
+            const paid = parseInt(cashInput.value) || 0;
+            const change = paid - currentTotal;
+            if (paid > 0 && change >= 0) {
+                changeDisplay.textContent = formatRupiah(change);
+                changeDisplay.className = 'fw-bold text-success fs-6';
+            } else if (paid > 0 && change < 0) {
+                changeDisplay.textContent = 'Kurang ' + formatRupiah(Math.abs(change));
+                changeDisplay.className = 'fw-bold text-danger fs-6';
+            } else {
+                changeDisplay.textContent = 'Rp 0';
+                changeDisplay.className = 'fw-bold text-primary fs-6';
+            }
+        }
+    }
+
+    cashInput.addEventListener('input', updateChange);
+
+    document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.value === 'cash') {
+                cashPanel.style.display = 'block';
+                qrisPanel.style.display = 'none';
+            } else {
+                cashPanel.style.display = 'none';
+                qrisPanel.style.display = 'block';
+            }
+            updateChange();
+        });
+    });
+
+    document.querySelectorAll('.quick-cash-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const val = this.dataset.val;
+            if (val === 'exact') {
+                cashInput.value = currentTotal;
+            } else {
+                cashInput.value = val;
+            }
+            updateChange();
+        });
+    });
 
     function renderCart() {
         if (cart.length === 0) {
@@ -150,11 +329,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         Keranjang masih kosong.<br><small>Pilih menu di samping untuk menambahkan.</small>
                     </td>
                 </tr>`;
+            currentTotal = 0;
             totalItemsEl.textContent = '0';
             totalAmountEl.textContent = 'Rp 0';
             submitBtn.disabled = true;
             clearBtn.style.display = 'none';
             cartInput.value = '[]';
+            updateChange();
             return;
         }
 
@@ -188,12 +369,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 </tr>`;
         });
 
+        currentTotal = totalSum;
         cartBody.innerHTML = html;
         totalItemsEl.textContent = totalQty;
         totalAmountEl.textContent = formatRupiah(totalSum);
         submitBtn.disabled = false;
         clearBtn.style.display = 'inline-block';
         cartInput.value = JSON.stringify(cart);
+        updateChange();
     }
 
     // Add item to cart
@@ -228,7 +411,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
 
-            // Reset row inputs
             qtyInput.value = 1;
             discountInput.value = 0;
 
@@ -236,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Cart table events (increase, decrease, remove)
+    // Cart table events
     cartBody.addEventListener('click', function (e) {
         const decBtn = e.target.closest('.btn-qty-dec');
         const incBtn = e.target.closest('.btn-qty-inc');
@@ -267,6 +449,7 @@ document.addEventListener('DOMContentLoaded', function () {
     clearBtn.addEventListener('click', function () {
         if (confirm('Kosongkan semua item di keranjang?')) {
             cart = [];
+            cashInput.value = '';
             renderCart();
         }
     });
@@ -285,16 +468,153 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // QRIS Camera & Upload Logic
+    const cameraStreamBox = document.getElementById('camera-stream-box');
+    const cameraVideo = document.getElementById('camera-video');
+    const cameraCanvas = document.getElementById('camera-canvas');
+    const btnOpenCamera = document.getElementById('btn-open-camera');
+    const btnSnapPhoto = document.getElementById('btn-snap-photo');
+    const btnStopCamera = document.getElementById('btn-stop-camera');
+    const btnPickFile = document.getElementById('btn-pick-file');
+    const fileInput = document.getElementById('payment_proof_file');
+    const cameraInput = document.getElementById('payment_proof_camera');
+    const cameraErrorMsg = document.getElementById('camera-error-msg');
+    const previewBox = document.getElementById('proof-preview-box');
+    const previewImg = document.getElementById('proof-preview-img');
+    const btnDeleteProof = document.getElementById('btn-delete-proof');
+
+    let mediaStream = null;
+
+    function stopCameraStream() {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+        }
+        if (cameraVideo) {
+            cameraVideo.srcObject = null;
+        }
+        if (cameraStreamBox) {
+            cameraStreamBox.style.display = 'none';
+        }
+    }
+
+    if (btnOpenCamera) {
+        btnOpenCamera.addEventListener('click', async function () {
+            cameraErrorMsg.style.display = 'none';
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                cameraErrorMsg.textContent = 'Browser tidak mendukung akses kamera langsung. Silakan gunakan tombol "Unggah File".';
+                cameraErrorMsg.style.display = 'block';
+                return;
+            }
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                });
+                cameraVideo.srcObject = mediaStream;
+                await cameraVideo.play();
+                cameraStreamBox.style.display = 'block';
+            } catch (err) {
+                cameraErrorMsg.textContent = 'Tidak dapat mengakses kamera (' + (err.name || 'Akses ditolak') + '). Gunakan tombol "Unggah File".';
+                cameraErrorMsg.style.display = 'block';
+                stopCameraStream();
+            }
+        });
+    }
+
+    if (btnSnapPhoto) {
+        btnSnapPhoto.addEventListener('click', function () {
+            if (!cameraVideo.videoWidth) return;
+            cameraCanvas.width = cameraVideo.videoWidth;
+            cameraCanvas.height = cameraVideo.videoHeight;
+            const ctx = cameraCanvas.getContext('2d');
+            ctx.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+            const dataUrl = cameraCanvas.toDataURL('image/jpeg', 0.85);
+            cameraInput.value = dataUrl;
+            if (fileInput) fileInput.value = '';
+
+            previewImg.src = dataUrl;
+            previewBox.style.display = 'block';
+            stopCameraStream();
+        });
+    }
+
+    if (btnStopCamera) {
+        btnStopCamera.addEventListener('click', function () {
+            stopCameraStream();
+        });
+    }
+
+    if (btnPickFile) {
+        btnPickFile.addEventListener('click', function () {
+            fileInput.click();
+        });
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    previewBox.style.display = 'block';
+                    cameraInput.value = '';
+                    stopCameraStream();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (btnDeleteProof) {
+        btnDeleteProof.addEventListener('click', function () {
+            cameraInput.value = '';
+            if (fileInput) fileInput.value = '';
+            previewImg.src = '';
+            previewBox.style.display = 'none';
+            stopCameraStream();
+        });
+    }
+
+    document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.value !== 'qris') {
+                stopCameraStream();
+            }
+        });
+    });
+
     // Submit order confirmation
     submitBtn.addEventListener('click', function () {
         if (cart.length === 0) return;
         const totalSum = totalAmountEl.textContent;
         const totalItems = totalItemsEl.textContent;
+        const payMethod = document.querySelector('input[name="payment_method"]:checked')?.value || 'cash';
+
+        let methodLabel = payMethod === 'qris' ? 'QRIS' : 'Cash (Tunai)';
+
+        if (payMethod === 'cash') {
+            const paid = parseInt(cashInput.value) || 0;
+            if (paid > 0 && paid < currentTotal) {
+                alert('Nominal uang diterima kurang dari total pembayaran (' + totalSum + ')');
+                cashInput.focus();
+                return;
+            }
+        }
 
         if (window.Swal) {
             Swal.fire({
                 title: 'Konfirmasi Transaksi',
-                html: `Simpan transaksi dengan <b>${totalItems} item</b> senilai <b>${totalSum}</b>?`,
+                html: `
+                    <div class="text-start p-2 bg-light rounded small">
+                        <div class="mb-1">Item: <strong>${totalItems} porsi</strong></div>
+                        <div class="mb-1">Total: <strong class="text-success fs-6">${totalSum}</strong></div>
+                        <div class="mb-1">Metode: <span class="badge bg-primary">${methodLabel}</span></div>
+                    </div>
+                    <div class="mt-2">Simpan dan proses transaksi ini sekarang?</div>
+                `,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#198754',
@@ -307,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         } else {
-            if (confirm(`Simpan transaksi dengan ${totalItems} item senilai ${totalSum}?`)) {
+            if (confirm(`Simpan transaksi [${methodLabel}] sebesar ${totalSum}?`)) {
                 document.getElementById('transaction-form').submit();
             }
         }

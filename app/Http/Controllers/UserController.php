@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class UserController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = User::query();
+        $query = User::with('branch');
 
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -31,13 +32,18 @@ class UserController extends Controller
             $query->where('role', $request->input('role'));
         }
 
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->input('branch_id'));
+        }
+
         if ($request->filled('status')) {
             $query->where('is_active', $request->input('status') === '1');
         }
 
         $users = $query->orderBy('name')->paginate(10)->withQueryString();
+        $branches = Branch::where('is_active', true)->orderBy('name')->get();
 
-        return view('users.index', compact('users'));
+        return view('users.index', compact('users', 'branches'));
     }
 
     /**
@@ -45,7 +51,8 @@ class UserController extends Controller
      */
     public function create(): View
     {
-        return view('users.create');
+        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        return view('users.create', compact('branches'));
     }
 
     /**
@@ -54,25 +61,28 @@ class UserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', Password::min(6)],
-            'role' => ['required', 'string', Rule::in(['admin', 'kasir', 'owner'])],
+            'name'      => ['required', 'string', 'max:255'],
+            'email'     => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password'  => ['required', 'string', Password::min(6)],
+            'role'      => ['required', 'string', Rule::in(['admin', 'kasir', 'owner'])],
+            'branch_id' => ['nullable', 'exists:branches,id'],
             'is_active' => ['nullable', 'boolean'],
         ], [
-            'name.required' => 'Nama lengkap wajib diisi.',
-            'email.required' => 'Alamat email wajib diisi.',
-            'email.unique' => 'Alamat email sudah digunakan oleh pengguna lain.',
+            'name.required'     => 'Nama lengkap wajib diisi.',
+            'email.required'    => 'Alamat email wajib diisi.',
+            'email.unique'      => 'Alamat email sudah digunakan oleh pengguna lain.',
             'password.required' => 'Password wajib diisi.',
-            'password.min' => 'Password minimal harus 6 karakter.',
-            'role.required' => 'Peran (Role) pengguna wajib dipilih.',
+            'password.min'      => 'Password minimal harus 6 karakter.',
+            'role.required'     => 'Peran (Role) pengguna wajib dipilih.',
+            'branch_id.exists'  => 'Cabang yang dipilih tidak valid.',
         ]);
 
         User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
+            'name'      => $validated['name'],
+            'email'     => $validated['email'],
+            'password'  => Hash::make($validated['password']),
+            'role'      => $validated['role'],
+            'branch_id' => $validated['branch_id'] ?? null,
             'is_active' => $request->has('is_active'),
         ]);
 
@@ -84,7 +94,8 @@ class UserController extends Controller
      */
     public function edit(User $user): View
     {
-        return view('users.edit', compact('user'));
+        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        return view('users.edit', compact('user', 'branches'));
     }
 
     /**
@@ -93,23 +104,26 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-            'password' => ['nullable', 'string', Password::min(6)],
-            'role' => ['required', 'string', Rule::in(['admin', 'kasir', 'owner'])],
+            'name'      => ['required', 'string', 'max:255'],
+            'email'     => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'password'  => ['nullable', 'string', Password::min(6)],
+            'role'      => ['required', 'string', Rule::in(['admin', 'kasir', 'owner'])],
+            'branch_id' => ['nullable', 'exists:branches,id'],
             'is_active' => ['nullable', 'boolean'],
         ], [
-            'name.required' => 'Nama lengkap wajib diisi.',
-            'email.required' => 'Alamat email wajib diisi.',
-            'email.unique' => 'Alamat email sudah digunakan.',
-            'password.min' => 'Password minimal harus 6 karakter jika ingin diubah.',
-            'role.required' => 'Peran (Role) pengguna wajib dipilih.',
+            'name.required'    => 'Nama lengkap wajib diisi.',
+            'email.required'   => 'Alamat email wajib diisi.',
+            'email.unique'     => 'Alamat email sudah digunakan.',
+            'password.min'     => 'Password minimal harus 6 karakter jika ingin diubah.',
+            'role.required'    => 'Peran (Role) pengguna wajib dipilih.',
+            'branch_id.exists' => 'Cabang yang dipilih tidak valid.',
         ]);
 
         $data = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'role' => $validated['role'],
+            'name'      => $validated['name'],
+            'email'     => $validated['email'],
+            'role'      => $validated['role'],
+            'branch_id' => $validated['branch_id'] ?? null,
             'is_active' => $request->has('is_active'),
         ];
 

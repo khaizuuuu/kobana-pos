@@ -16,18 +16,28 @@
 
     <div class="card-body border-bottom bg-light py-3">
         <form method="GET" action="{{ route('users.index') }}" class="row g-2">
-            <div class="col-md-5">
+            <div class="col-md-3">
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                     <input type="text" name="search" class="form-control" placeholder="Cari nama atau email..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <select name="role" class="form-select form-select-sm">
                     <option value="">Semua Peran (Role)</option>
                     <option value="admin" {{ request('role') === 'admin' ? 'selected' : '' }}>Admin</option>
                     <option value="kasir" {{ request('role') === 'kasir' ? 'selected' : '' }}>Kasir</option>
                     <option value="owner" {{ request('role') === 'owner' ? 'selected' : '' }}>Owner</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="branch_id" class="form-select form-select-sm">
+                    <option value="">Semua Cabang</option>
+                    @foreach($branches as $b)
+                        <option value="{{ $b->id }}" {{ request('branch_id') == $b->id ? 'selected' : '' }}>
+                            {{ $b->name }}
+                        </option>
+                    @endforeach
                 </select>
             </div>
             <div class="col-md-2">
@@ -37,9 +47,9 @@
                     <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Nonaktif</option>
                 </select>
             </div>
-            <div class="col-md-2 d-flex gap-2">
+            <div class="col-md-2 d-flex gap-1">
                 <button type="submit" class="btn btn-secondary btn-sm flex-fill">Filter</button>
-                @if(request()->hasAny(['search', 'role', 'status']))
+                @if(request()->hasAny(['search', 'role', 'branch_id', 'status']))
                     <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm" title="Reset Filter"><i class="bi bi-arrow-counterclockwise"></i></a>
                 @endif
             </div>
@@ -55,6 +65,7 @@
                         <th>Nama Pengguna</th>
                         <th>Email</th>
                         <th>Peran (Role)</th>
+                        <th>Cabang</th>
                         <th>Status</th>
                         <th>Terdaftar</th>
                         <th style="width: 140px;" class="text-end">Aksi</th>
@@ -75,6 +86,15 @@
                                 <span class="badge badge-role-{{ $user->role }} px-2 py-1">
                                     {{ ucfirst($user->role) }}
                                 </span>
+                            </td>
+                            <td>
+                                @if($user->branch)
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ $user->branch->name }}
+                                    </span>
+                                @else
+                                    <span class="text-muted small">Global / Pusat</span>
+                                @endif
                             </td>
                             <td>
                                 @if($user->is_active)
@@ -116,7 +136,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">
+                            <td colspan="8" class="text-center py-4 text-muted">
                                 <i class="bi bi-people fs-3 d-block mb-1"></i> Tidak ada data pengguna ditemukan.
                             </td>
                         </tr>

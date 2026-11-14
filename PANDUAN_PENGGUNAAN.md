@@ -10,12 +10,13 @@ Dokumen ini berisi panduan lengkap dan langkah demi langkah pengoperasian setiap
 2. [Dashboard Analitik](#2-dashboard-analitik)
 3. [Kasir / Input Transaksi Baru (POS)](#3-kasir--input-transaksi-baru-pos)
 4. [Riwayat & Detail Transaksi](#4-riwayat--detail-transaksi)
-5. [Master Menu & Master Kategori](#5-master-menu--master-kategori)
-6. [Analisis FP-Growth (Market Basket Analysis)](#6-analisis-fp-growth-market-basket-analysis)
-7. [Laporan Penjualan & Ekspor (Excel/PDF)](#7-laporan-penjualan--ekspor-excelpdf)
-8. [Impor Dataset Penjualan (Excel)](#8-impor-dataset-penjualan-excel)
-9. [Manajemen Pengguna (User) & Profil](#9-manajemen-pengguna-user--profil)
-10. [Tips & Troubleshooting](#10-tips--troubleshooting)
+5. [Kas & Belanja Harian Warung (Petty Cash & Tabungan)](#5-kas--belanja-harian-warung-petty-cash--tabungan)
+6. [Master Menu & Master Kategori](#6-master-menu--master-kategori)
+7. [Analisis FP-Growth (Market Basket Analysis)](#7-analisis-fp-growth-market-basket-analysis)
+8. [Laporan Penjualan & Ekspor (Excel/PDF)](#8-laporan-penjualan--ekspor-excelpdf)
+9. [Impor Dataset Penjualan (Excel)](#9-impor-dataset-penjualan-excel)
+10. [Manajemen Pengguna (User) & Profil](#10-manajemen-pengguna-user--profil)
+11. [Tips & Troubleshooting](#11-tips--troubleshooting)
 
 ---
 
@@ -32,39 +33,51 @@ Dokumen ini berisi panduan lengkap dan langkah demi langkah pengoperasian setiap
 | **Dashboard Analitik** | ✅ | ✅ | ✅ |
 | **Kasir / Input Transaksi** | ✅ | ✅ | ❌ |
 | **Riwayat Transaksi** | ✅ (Full + Edit/Hapus) | ✅ (Lihat/Cetak) | ✅ (Lihat/Cetak) |
+| **Kas & Belanja Harian** | ✅ (Full) | ✅ (Catat/Lihat Cabang) | ✅ (Monitoring Seluruh Cabang) |
 | **Master Menu & Kategori** | ✅ (Full CRUD) | ✅ (Lihat saja) | ✅ (Lihat saja) |
 | **Analisis FP-Growth** | ✅ (Jalankan & Hapus) | ❌ | ✅ (Jalankan & Lihat) |
 | **Laporan & Ekspor** | ✅ | ❌ | ✅ |
 | **Impor Dataset Excel** | ✅ | ❌ | ❌ |
 | **Manajemen Pengguna** | ✅ | ❌ | ❌ |
 
-### C. Akun Bawaan (Default)
-| Role | Email | Password |
-|---|---|---|
-| **Admin** | `admin@kobana.id` | `password` |
-| **Kasir** | `kasir@kobana.id` | `password` |
-| **Owner** | `owner@kobana.id` | `password` |
+### C. Akun Bawaan & Penugasan Cabang (3 Cabang)
+Kobana Fried Chicken memiliki 3 cabang outlet resmi:
+1. **Kobana Pusat (`KBN01`)** — Jl. Soekarno Hatta No. 12 (Telp: 0812-3456-7890)
+2. **Kobana Sukun (`KBN02`)** — Jl. S. Supriadi No. 45 (Telp: 0812-3456-7891)
+3. **Kobana Dinoyo (`KBN03`)** — Jl. MT Haryono No. 88 (Telp: 0812-3456-7892)
+
+| Role | Akun Email | Password | Penugasan Cabang |
+|---|---|---|---|
+| **Admin** | `admin@kobana.id` | `password` | Kantor Pusat / Semua Cabang |
+| **Kasir 1** | `kasir@kobana.id` | `password` | Cabang Kobana Pusat (`KBN01`) |
+| **Kasir 2** | `kasir2@kobana.id` | `password` | Cabang Kobana Sukun (`KBN02`) |
+| **Kasir 3** | `kasir3@kobana.id` | `password` | Cabang Kobana Dinoyo (`KBN03`) |
+| **Owner** | `owner@kobana.id` | `password` | Pemilik / Monitoring Semua Cabang |
 
 ---
 
 ## 2. Dashboard Analitik
 **Menu Sidebar:** `Utama` ➔ `Dashboard` (`/dashboard`)
 
-Fitur ini menyajikan visualisasi data penjualan secara real-time dan komprehensif untuk memantau performa bisnis.
+Fitur ini menyajikan visualisasi data penjualan secara real-time dan komprehensif untuk memantau performa bisnis, baik secara menyeluruh maupun per cabang.
 
 ### Cara Menggunakan:
-1. **Memilih Rentang Waktu:**
+1. **Memilih Rentang Waktu & Cabang:**
    - Isi input **Dari Tanggal** dan **Sampai Tanggal** di bagian atas halaman (secara bawaan menampilkan 30 hari terakhir).
+   - **Filter Cabang (Khusus Owner & Admin):** Pilih salah satu cabang (Kobana Pusat, Kobana Sukun, Kobana Dinoyo) atau pilih *Semua Cabang* untuk melihat performa gabungan. Kasir yang login otomatis terkunci ke cabangnya masing-masing.
    - Klik tombol **Terapkan** untuk menyaring data.
    - Klik tombol ikon *refresh* untuk mengembalikan ke tanggal default.
 2. **Membaca Kartu Ringkasan:**
-   - **Omzet Periode:** Total pendapatan kotor dalam periode yang dipilih.
+   - **Omzet Periode:** Total pendapatan kotor dalam periode dan cabang yang dipilih.
    - **Total Transaksi:** Jumlah transaksi penjualan yang berhasil dicatat.
    - **Item Terjual:** Total kuantitas porsi/produk yang terjual.
    - **Rata-rata Trx:** Rata-rata nominal belanja per transaksi (*Average Order Value*).
    - **Omzet Hari Ini & Trx Hari Ini:** Pendapatan dan jumlah transaksi khusus hari ini.
    - **Total Menu & Kategori:** Jumlah master data produk yang terdaftar.
-3. **Menganalisis Grafik:**
+3. **Membaca Rincian Metode Pembayaran:**
+   - **Cash (Tunai):** Menampilkan total omzet tunai, jumlah transaksi, dan kontribusi persentase terhadap total omzet.
+   - **QRIS:** Menampilkan total omzet digital QRIS, jumlah transaksi, dan kontribusi persentase.
+4. **Menganalisis Grafik:**
    - **Tren Omzet Harian (Kombinasi Line & Bar):** Memantau fluktuasi omzet dan frekuensi transaksi harian.
    - **Omzet per Jam Hari Ini (Bar):** Mengetahui jam sibuk (*peak hours*) operasional kasir.
    - **Omzet per Hari dalam Seminggu (Horizontal Bar):** Mengidentifikasi hari dengan penjualan tertinggi (misal: akhir pekan vs hari kerja).
@@ -76,26 +89,44 @@ Fitur ini menyajikan visualisasi data penjualan secara real-time dan komprehensi
 ## 3. Kasir / Input Transaksi Baru (POS)
 **Menu Sidebar:** `Transaksi` ➔ `Kasir / Input Transaksi` (`/transactions/create`)
 
-Antarmuka Point of Sale (POS) cepat dan interaktif untuk melayani pesanan pelanggan.
+Antarmuka Point of Sale (POS) cepat dan interaktif untuk melayani pesanan pelanggan dengan dukungan multi-cabang dan metode pembayaran (Cash dan QRIS).
 
 ### Cara Melakukan Transaksi:
-1. **Cari Menu:** Ketikkan nama atau kode menu pada kotak pencarian di tabel menu (misal: `Ayam`, `Teh`, atau `M01`).
-2. **Tentukan Jumlah & Diskon:**
+1. **Pemeriksaan Cabang & Kasir:**
+   - Di bagian atas layar POS terdapat banner informasi cabang tempat kasir bertugas (misal: *Kobana Pusat*, *Kobana Sukun*, atau *Kobana Dinoyo*). Kasir otomatis mengunci transaksi ke cabang penugasannya.
+   - Jika login sebagai Admin, Admin dapat memilih cabang tujuan transaksi melalui dropdown.
+2. **Cari Menu:** Ketikkan nama atau kode menu pada kotak pencarian di tabel menu (misal: `Ayam`, `Teh`, atau `M01`).
+3. **Tentukan Jumlah & Diskon:**
    - Pada baris menu yang dipilih, masukkan angka pada kolom **Qty** (jumlah pesanan).
    - Masukkan nominal diskon per item (jika ada potongan promo) pada kolom **Diskon**.
-3. **Masukkan ke Keranjang:**
+4. **Masukkan ke Keranjang:**
    - Klik tombol hijau **+ Tambah**. Item akan langsung masuk ke tabel **Keranjang Transaksi** di sebelah kanan.
    - Jika menu yang sama ditambahkan lagi, jumlah qty akan otomatis diakumulasikan.
-4. **Mengubah Pesanan di Keranjang:**
+5. **Mengubah Pesanan di Keranjang:**
    - Klik tombol **`+`** atau **`-`** untuk menambah/mengurangi qty secara instan.
    - Klik tombol silang merah **`✕`** untuk menghapus menu tertentu dari keranjang.
    - Klik tombol **Kosongkan** jika ingin membatalkan seluruh pesanan sekaligus.
-5. **Memproses Pembayaran:**
-   - Periksa **Total Jumlah Item** dan **Total Pembayaran**.
-   - Klik tombol hijau **Proses & Simpan Transaksi**.
+6. **Memilih Metode Pembayaran:**
+   - **Cash (Tunai):**
+     - Masukkan jumlah uang tunai yang diterima pelanggan pada kotak *Uang Tunai Diterima (Rp)*.
+     - Atau klik tombol cepat (*Uang Pas*, *20rb*, *50rb*, *100rb*).
+     - Sistem otomatis menghitung dan menampilkan nominal **Kembalian** secara real-time. Jika uang kurang, sistem memberi peringatan merah.
+   - **QRIS:**
+     - Klik opsi **QRIS**.
+     - Tunjukkan QR code fisik/meja kasir atau dinamis ke pelanggan.
+     - Kasir dapat memasukkan nomor referensi / RRN struk QRIS (opsional) pada kotak yang disediakan untuk pencocokan mutasi.
+     - **Foto Bukti Transaksi QRIS (Fitur Kamera / Unggah Screenshot):**
+       - Klik tombol **Buka Kamera** untuk mengaktifkan webcam laptop/PC kasir atau kamera perangkat HP/tablet secara langsung.
+       - Arahkan ke layar HP pelanggan yang menampilkan bukti sukses QRIS atau struk kasir, lalu klik **Ambil Foto**.
+       - Atau klik tombol **Unggah File** jika kasir menerima file gambar / screenshot bukti pembayaran.
+       - Foto pratinjau (*Foto Siap*) akan tampil dan dapat dihapus/diambil ulang kapan saja dengan tombol **Hapus**.
+     - Tidak memerlukan kembalian (otomatis nominal pas).
+7. **Memproses & Menyimpan Transaksi:**
+   - Periksa kembali ringkasan pesanan dan nominal pembayaran.
+   - Klik tombol **Proses & Simpan Transaksi**.
    - Muncul dialog konfirmasi SweetAlert2: klik **Ya, Simpan Transaksi**.
-   - Sistem akan mengunci urutan nomor transaksi (*DB Row Locking*) dan menghasilkan kode otomatis dengan format `TRXYYYYMMDDXXXXX` (contoh: `TRX2026101000001`).
-   - Anda akan diarahkan langsung ke halaman **Detail Transaksi / Nota**.
+   - Sistem mengunci nomor transaksi (*DB Row Locking*) dan menghasilkan kode unik `TRXYYYYMMDDXXXXX` (contoh: `TRX2026101000001`).
+   - Anda akan diarahkan langsung ke halaman **Detail Transaksi / Cetak Struk**.
 
 ---
 
@@ -104,25 +135,62 @@ Antarmuka Point of Sale (POS) cepat dan interaktif untuk melayani pesanan pelang
 
 ### A. Melihat & Menyaring Riwayat
 1. Masuk ke menu **Riwayat Transaksi**.
+   - **Perilaku Kasir:** Kasir hanya dapat melihat riwayat transaksi dari cabang tempatnya bertugas.
+   - **Perilaku Admin & Owner:** Dapat melihat seluruh transaksi dan memfilter berdasarkan cabang mana pun.
 2. Gunakan kolom filter untuk mencari data tertentu:
    - **Dari Tanggal & Sampai Tanggal:** Rentang tanggal transaksi.
-   - **Kode Transaksi:** Pencarian spesifik kode (misal `TRX202610`).
+   - **Cabang:** Saring berdasarkan outlet cabang (Pusat, Sukun, Dinoyo).
+   - **Metode Pembayaran:** Saring khusus transaksi Cash atau QRIS.
+   - **Kode Transaksi:** Pencarian spesifik nomor struk (misal `TRX202610`).
    - **Nama Menu:** Mencari transaksi yang memuat menu tertentu.
 3. Klik tombol **Filter** untuk menjalankan pencarian.
 
 ### B. Melihat Rincian & Mencetak Struk
 1. Klik tombol ikon mata (biru) atau klik Kode Transaksi pada tabel.
 2. Pada halaman **Detail Transaksi**:
-   - Tampil rincian lengkap: waktu transaksi, nama kasir, item menu, harga, diskon, subtotal, dan total pembayaran.
-   - Klik tombol **Cetak Struk** untuk langsung membuka jendela cetak printer kasir / simpan PDF nota.
+   - Tampil rincian lengkap: nama cabang outlet, alamat cabang, waktu transaksi, nama kasir bertugas, metode pembayaran (Cash / QRIS), catatan referensi (RRN QRIS), uang diterima, dan kembalian.
+   - Klik tombol **Cetak Struk** untuk langsung membuka jendela cetak printer thermal kasir / simpan PDF nota.
+   - **Bukti Foto QRIS:** Pada panel samping kanan, tampil foto bukti pembayaran yang telah diambil kasir. Klik foto atau tombol **Perbesar Foto** untuk membuka lightbox modal beresolusi tinggi, atau klik **Unduh** untuk menyimpan file.
+   - Pada tabel **Riwayat Transaksi**, transaksi QRIS yang memiliki foto bukti akan menampilkan lencana ikon kamera biru (📷) yang dapat langsung diklik untuk melihat foto.
 
 ### C. Mengedit & Menghapus Transaksi *(Khusus Admin)*
-- **Edit Transaksi:** Klik tombol **Edit** ➔ Keranjang pesanan lama akan dimuat ulang ke layar POS ➔ Ubah item/qty/diskon ➔ Klik **Update Transaksi**.
+- **Edit Transaksi:** Klik tombol **Edit** ➔ Keranjang pesanan lama akan dimuat ulang ke layar POS beserta cabang dan metode pembayarannya ➔ Sesuaikan item/qty/diskon/metode bayar ➔ Klik **Update Transaksi**.
 - **Hapus Transaksi:** Klik tombol **Hapus Transaksi** ➔ Konfirmasi dialog SweetAlert2 ➔ Transaksi dan itemnya akan dihapus permanen dari database.
 
 ---
 
-## 5. Master Menu & Master Kategori
+## 5. Kas & Belanja Harian Warung (Petty Cash & Tabungan)
+**Menu Sidebar:** `Transaksi` ➔ `Kas & Belanja Harian` (`/operational-cash`)
+
+Fitur pencatatan kas harian kasir untuk belanja kebutuhan operasional warung (seperti beras, gas LPG, minyak, kantong kresek, teh/gula, sabun cuci) serta pencatatan setoran tabungan hasil penjualan harian.
+
+### A. Peran & Alur Kasir:
+1. **Belanja Barang Kebutuhan Warung (Pengeluaran Kas):**
+   - Kasir membeli barang kebutuhan harian warung menggunakan kas harian.
+   - Buka menu **Kas & Belanja Harian** ➔ Klik tombol **+ Catat Belanja / Tabungan** (`/operational-cash/create`).
+   - Tersedia tombol cepat (*Quick Chips*) untuk kebutuhan rutin:
+     - 🍚 **Beras** (Kategori: Bahan Baku)
+     - 🔥 **Gas LPG 3kg** (Kategori: Gas & Energi)
+     - 🛍️ **Kantong Kresek** (Kategori: Kemasan & Plastik)
+     - 🛢️ **Minyak Goreng** (Kategori: Bahan Baku)
+     - 🍵 **Gula & Teh** (Kategori: Bahan Baku)
+     - 🧼 **Sabun Cuci** (Kategori: Kebersihan & Sanitasi)
+   - Masukkan nominal harga pembelian (Rp) dan catatan tempat belanja / nomor nota warung (opsional).
+   - Klik **Simpan Catatan Kas**.
+
+2. **Menabung Kas / Setoran Harian:**
+   - Kasir menyisihkan sebagian uang cash hasil penjualan harian untuk ditabung / disetorkan ke owner.
+   - Pada formulir kas, pilih jenis **Menabung Kas** (atau klik tombol cepat 💰 **Tabungan Harian**).
+   - Masukkan nominal uang yang ditabung (misal: Rp 250.000).
+   - Klik **Simpan Catatan Kas**.
+
+3. **Isolasi Data Cabang Kasir:**
+   - Kasir otomatis mencatat dan melihat pengeluaran serta tabungan di cabangnya masing-masing.
+   - Owner dan Admin dapat memonitor seluruh pengeluaran belanja dan tabungan di semua cabang secara real-time.
+
+---
+
+## 6. Master Menu & Master Kategori
 
 ### A. Master Kategori (`/categories`)
 Kategori digunakan untuk mengelompokkan menu (misal: *Ayam Goreng, Paket Nasi, Minuman, Camilan*).
@@ -147,7 +215,7 @@ Kategori digunakan untuk mengelompokkan menu (misal: *Ayam Goreng, Paket Nasi, M
 
 ---
 
-## 6. Analisis FP-Growth (Market Basket Analysis)
+## 7. Analisis FP-Growth (Market Basket Analysis)
 **Menu Sidebar:** `Analisis & Laporan` ➔ `Analisis FP-Growth` (`/analysis/fp-growth`)
 
 Fitur cerdas *Data Mining* murni PHP untuk menemukan pola menu yang sering dibeli bersamaan oleh pelanggan.
@@ -176,27 +244,29 @@ Fitur cerdas *Data Mining* murni PHP untuk menemukan pola menu yang sering dibel
 
 ---
 
-## 7. Laporan Penjualan & Ekspor (Excel/PDF)
+## 8. Laporan Penjualan & Ekspor (Excel/PDF)
 **Menu Sidebar:** `Analisis & Laporan` ➔ `Laporan Penjualan` (`/reports`)
 
-Digunakan oleh Owner dan Admin untuk rekapitulasi data akuntansi & penjualan berkala.
+Digunakan oleh Owner dan Admin untuk rekapitulasi data akuntansi & penjualan berkala dengan pemisahan per cabang dan metode pembayaran.
 
 ### Cara Menggunakan:
 1. **Filter Laporan:**
    - Tentukan **Dari Tanggal** & **Sampai Tanggal**.
-   - Pilih filter **Kategori** jika hanya ingin melihat kategori tertentu.
+   - **Filter Cabang:** Pilih *Kobana Pusat*, *Kobana Sukun*, *Kobana Dinoyo*, atau *Semua Cabang*.
+   - **Filter Metode Bayar:** Pilih *Cash (Tunai)*, *QRIS*, atau *Semua Metode*.
+   - **Filter Kategori:** Pilih kategori menu tertentu jika diperlukan.
    - Klik **Filter**.
 2. **Melihat Ringkasan:**
-   - Bagian atas menampilkan ringkasan: Total Omzet, Total Transaksi, Item Terjual, dan Rata-rata Belanja.
+   - Bagian atas menampilkan ringkasan: Total Omzet, Total Transaksi, Item Terjual, dan Rata-rata Belanja sesuai filter cabang dan metode bayar.
    - Tabel **Laporan Harian:** Rincian transaksi dan omzet per hari kalender.
    - Tabel **Laporan per Menu:** Rincian kuantitas terjual dan subtotal omzet per masing-masing menu.
 3. **Ekspor Data:**
-   - **Ekspor CSV / Excel:** Klik tombol hijau **Ekspor CSV / Excel** untuk mengunduh spreadsheet `.csv` (dilengkapi UTF-8 BOM sehingga langsung terbuka rapi di Microsoft Excel tanpa teks berantakan).
-   - **Ekspor PDF (Print):** Klik tombol merah **Ekspor PDF (Print)** untuk membuka tampilan cetak laporan bersih, siap dicetak ke kertas fisik atau disimpan menjadi file PDF (*Save as PDF*).
+   - **Ekspor CSV / Excel:** Klik tombol hijau **Ekspor CSV / Excel** untuk mengunduh spreadsheet `.csv` (dilengkapi kolom nama Cabang dan Metode Pembayaran, serta UTF-8 BOM agar rapi di Microsoft Excel).
+   - **Ekspor PDF (Print):** Klik tombol merah **Ekspor PDF (Print)** untuk mencetak laporan resmi yang mencantumkan nama cabang dan metode pembayaran yang disaring.
 
 ---
 
-## 8. Impor Dataset Penjualan (Excel)
+## 9. Impor Dataset Penjualan (Excel)
 **Menu Sidebar:** `Sistem` ➔ `Impor Dataset` (`/imports`) *(Khusus Admin)*
 
 Digunakan untuk migrasi data awal atau mengunggah rekapan data transaksi massal dari file Microsoft Excel.
@@ -216,19 +286,23 @@ File Excel harus memiliki 3 lembar kerja (Sheet) berikut:
 
 ---
 
-## 9. Manajemen Pengguna (User) & Profil
+## 10. Manajemen Pengguna (User) & Profil
 **Menu Sidebar:** `Sistem` ➔ `Manajemen User` (`/users`) *(Khusus Admin)*
 
-### A. Menambah Pengguna Baru:
+### A. Menambah & Menugaskan Kasir ke Cabang:
 1. Klik **+ Tambah Pengguna**.
 2. Masukkan **Nama Lengkap**, **Alamat Email**, **Password** (minimal 6 karakter).
 3. Pilih **Peran (Role)**:
-   - `Admin`: Akses penuh ke seluruh sistem.
-   - `Kasir`: Fokus pada transaksi POS & riwayat.
-   - `Owner`: Akses monitoring dashboard, analisis data, dan laporan.
-4. Centang **Status Aktif** lalu klik **Simpan Pengguna**.
+   - `Admin`: Akses penuh ke seluruh sistem dan seluruh cabang.
+   - `Kasir`: Fokus pada operasional kasir POS & riwayat cabang.
+   - `Owner`: Pemilik dengan akses monitoring dashboard, analisis data FP-Growth, dan laporan seluruh cabang.
+4. **Penugasan Cabang:**
+   - Pada dropdown **Penugasan Cabang**, pilih cabang tempat kasir bertugas (*Kobana Pusat*, *Kobana Sukun*, atau *Kobana Dinoyo*).
+   - Kasir yang sudah ditugaskan ke cabang tertentu otomatis akan mencatat setiap transaksi ke cabang tersebut tanpa perlu memilih cabang secara manual.
+5. Centang **Status Aktif** lalu klik **Simpan Pengguna**.
 
 ### B. Mengubah Status & Hapus Pengguna:
+- Gunakan filter **Peran (Role)** dan **Cabang** di halaman daftar pengguna untuk mempermudah pencarian staf per outlet.
 - Klik tombol mata/gembok untuk mengaktifkan atau menonaktifkan akun karyawan yang sudah tidak bekerja.
 - Sistem memiliki **Proteksi Akun Sendiri** (Anda tidak dapat menonaktifkan atau menghapus akun Anda sendiri saat sedang login).
 
@@ -239,7 +313,7 @@ File Excel harus memiliki 3 lembar kerja (Sheet) berikut:
 
 ---
 
-## 10. Tips & Troubleshooting
+## 11. Tips & Troubleshooting
 
 1. **Kasir Tidak Sengaja Menutup Browser saat Input:**
    - Data sebelum tombol *Proses Transaksi* diklik belum tersimpan di server. Buka kembali menu kasir untuk memulai transaksi baru.

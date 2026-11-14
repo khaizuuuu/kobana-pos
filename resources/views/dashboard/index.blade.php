@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Dashboard Analitik')
 @section('page-title', 'Dashboard Analitik Penjualan')
@@ -8,21 +8,38 @@
 {{-- â”€â”€â”€ Filter Rentang Tanggal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
 <form method="GET" action="{{ route('dashboard') }}" class="card shadow-sm mb-4 p-3">
     <div class="row g-2 align-items-end">
-        <div class="col-sm-4">
+        <div class="col-md-3 col-sm-6">
             <label class="form-label fw-semibold small mb-1">Dari Tanggal</label>
             <input type="date" name="date_from" class="form-control form-control-sm"
                    value="{{ $dateFrom->toDateString() }}">
         </div>
-        <div class="col-sm-4">
+        <div class="col-md-3 col-sm-6">
             <label class="form-label fw-semibold small mb-1">Sampai Tanggal</label>
             <input type="date" name="date_to" class="form-control form-control-sm"
                    value="{{ $dateTo->toDateString() }}">
         </div>
-        <div class="col-sm-4 d-flex gap-2">
+        <div class="col-md-4 col-sm-6">
+            <label class="form-label fw-semibold small mb-1">Filter Cabang</label>
+            @if(auth()->user()->isKasir() && auth()->user()->branch_id)
+                <div class="form-control form-control-sm bg-light text-muted d-flex align-items-center">
+                    <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ auth()->user()->branch?->name }} (Cabang Anda)
+                </div>
+            @else
+                <select name="branch_id" class="form-select form-select-sm">
+                    <option value="">Semua Cabang (Pusat & Seluruh Outlet)</option>
+                    @foreach($branches as $b)
+                        <option value="{{ $b->id }}" {{ $selectedBranchId == $b->id ? 'selected' : '' }}>
+                            {{ $b->name }} ({{ $b->code }})
+                        </option>
+                    @endforeach
+                </select>
+            @endif
+        </div>
+        <div class="col-md-2 col-sm-6 d-flex gap-2">
             <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
                 <i class="bi bi-funnel me-1"></i>Terapkan
             </button>
-            <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">
+            <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm" title="Reset Filter">
                 <i class="bi bi-arrow-counterclockwise"></i>
             </a>
         </div>
@@ -154,7 +171,71 @@
 
 </div>
 
-{{-- â”€â”€â”€ Baris Grafik 1: Tren Omzet per Hari + Omzet per Jam â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
+{{-- Ringkasan Kas & Belanja Warung --}}
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100 p-3 border-start border-danger border-4">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge bg-danger bg-opacity-10 text-danger fw-bold px-2 py-1">
+                    <i class="bi bi-cart-dash-fill me-1"></i> Total Belanja Operasional Warung
+                </span>
+                <a href="{{ route('operational-cash.index', ['type' => 'pengeluaran']) }}" class="small text-danger text-decoration-none fw-semibold">Buka Kas <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <div class="fw-bold fs-5 text-danger">@rupiah($stats['total_expense'])</div>
+            <small class="text-muted">Belanja harian (Beras, gas, minyak, kantong, sabun, dll)</small>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100 p-3 border-start border-success border-4">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1">
+                    <i class="bi bi-piggy-bank-fill me-1"></i> Total Tabungan / Setor Kas
+                </span>
+                <a href="{{ route('operational-cash.index', ['type' => 'tabungan']) }}" class="small text-success text-decoration-none fw-semibold">Buka Kas <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <div class="fw-bold fs-5 text-success">@rupiah($stats['total_savings'])</div>
+            <small class="text-muted">Uang yang ditabung / disetor kasir ke warung</small>
+        </div>
+    </div>
+</div>
+
+{{-- Ringkasan Berdasarkan Metode Pembayaran --}}
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <h6 class="fw-bold text-dark d-flex align-items-center gap-2 mb-1">
+            <i class="bi bi-credit-card-2-front-fill text-danger"></i> Rincian Metode Pembayaran
+        </h6>
+        <p class="text-muted small mb-0">Total penerimaan omzet dan frekuensi transaksi berdasarkan metode pembayaran pada periode yang dipilih.</p>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100 p-3 border-top border-success border-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1">
+                    <i class="bi bi-cash-stack me-1"></i> Cash (Tunai)
+                </span>
+                <span class="text-muted small">{{ number_format($stats['count_cash'], 0, ',', '.') }} transaksi</span>
+            </div>
+            <div class="fw-bold fs-5 text-dark">@rupiah($stats['omzet_cash'])</div>
+            <div class="small text-muted mt-1">
+                {{ $stats['total_omzet'] > 0 ? round(($stats['omzet_cash'] / $stats['total_omzet']) * 100, 1) : 0 }}% dari total omzet
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100 p-3 border-top border-primary border-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-2 py-1">
+                    <i class="bi bi-qr-code-scan me-1"></i> QRIS
+                </span>
+                <span class="text-muted small">{{ number_format($stats['count_qris'], 0, ',', '.') }} transaksi</span>
+            </div>
+            <div class="fw-bold fs-5 text-dark">@rupiah($stats['omzet_qris'])</div>
+            <div class="small text-muted mt-1">
+                {{ $stats['total_omzet'] > 0 ? round(($stats['omzet_qris'] / $stats['total_omzet']) * 100, 1) : 0 }}% dari total omzet
+            </div>
+        </div>
+    </div>
+</div>
 <div class="row g-4 mb-4">
 
     {{-- Tren Omzet per Hari (Line Chart) --}}

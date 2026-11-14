@@ -18,24 +18,38 @@
 
     <!-- Filter Bar -->
     <div class="card-body border-bottom bg-light py-3">
-        <form method="GET" action="{{ route('transactions.index') }}" class="row g-2">
+        <form method="GET" action="{{ route('transactions.index') }}" class="row g-2 align-items-center">
             <div class="col-md-2">
                 <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}" placeholder="Dari Tanggal">
             </div>
             <div class="col-md-2">
                 <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request('date_to') }}" placeholder="Sampai Tanggal">
             </div>
-            <div class="col-md-3">
-                <input type="text" name="code" class="form-control form-control-sm" value="{{ request('code') }}" placeholder="Kode transaksi (TRX...)">
+            <div class="col-md-2">
+                <select name="branch_id" class="form-select form-select-sm">
+                    <option value="">Semua Cabang</option>
+                    @foreach($branches as $b)
+                        <option value="{{ $b->id }}" {{ request('branch_id') == $b->id ? 'selected' : '' }}>
+                            {{ $b->name }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
-            <div class="col-md-3">
-                <input type="text" name="menu" class="form-control form-control-sm" value="{{ request('menu') }}" placeholder="Nama menu dibeli...">
+            <div class="col-md-2">
+                <select name="payment_method" class="form-select form-select-sm">
+                    <option value="">Semua Pembayaran</option>
+                    <option value="cash" {{ request('payment_method') === 'cash' ? 'selected' : '' }}>Cash (Tunai)</option>
+                    <option value="qris" {{ request('payment_method') === 'qris' ? 'selected' : '' }}>QRIS</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="code" class="form-control form-control-sm" value="{{ request('code') }}" placeholder="Kode TRX...">
             </div>
             <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-secondary btn-sm flex-fill">
                     <i class="bi bi-funnel me-1"></i> Filter
                 </button>
-                @if(request()->hasAny(['date_from', 'date_to', 'code', 'menu']))
+                @if(request()->hasAny(['date_from', 'date_to', 'branch_id', 'payment_method', 'code', 'menu']))
                     <a href="{{ route('transactions.index') }}" class="btn btn-outline-secondary btn-sm" title="Reset Filter">
                         <i class="bi bi-arrow-counterclockwise"></i>
                     </a>
@@ -50,12 +64,14 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 140px;">Kode Transaksi</th>
+                        <th style="width: 135px;">Kode Transaksi</th>
                         <th>Waktu & Tanggal</th>
-                        <th class="text-center" style="width: 100px;">Total Item</th>
-                        <th class="text-end" style="width: 140px;">Total Bayar</th>
-                        <th>Kasir / Pembuat</th>
-                        <th style="width: 130px;" class="text-end">Aksi</th>
+                        <th>Cabang</th>
+                        <th>Metode Bayar</th>
+                        <th class="text-center" style="width: 80px;">Item</th>
+                        <th class="text-end" style="width: 130px;">Total Bayar</th>
+                        <th>Kasir</th>
+                        <th style="width: 110px;" class="text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -70,9 +86,34 @@
                                 <div class="fw-semibold text-dark">{{ $trx->hari_indonesia }}, {{ $trx->formatted_date }}</div>
                                 <small class="text-muted">{{ $trx->transaction_time }}</small>
                             </td>
+                            <td>
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">
+                                    <i class="bi bi-shop me-1"></i>{{ $trx->branch?->name ?? 'Pusat' }}
+                                </span>
+                            </td>
+                            <td>
+                                @if($trx->payment_method === 'qris')
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                        <i class="bi bi-qr-code-scan me-1"></i> QRIS
+                                    </span>
+                                    @if($trx->payment_proof)
+                                        <a href="{{ $trx->payment_proof_url }}" target="_blank" class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1 text-decoration-none ms-1" title="Lihat Foto Bukti QRIS">
+                                            <i class="bi bi-camera-fill"></i>
+                                        </a>
+                                    @endif
+                                @elseif($trx->payment_method === 'transfer')
+                                    <span class="badge bg-info bg-opacity-10 text-dark border border-info border-opacity-25 px-2 py-1">
+                                        <i class="bi bi-bank me-1"></i> Transfer
+                                    </span>
+                                @else
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                                        <i class="bi bi-cash-stack me-1"></i> Cash
+                                    </span>
+                                @endif
+                            </td>
                             <td class="text-center">
                                 <span class="badge bg-secondary bg-opacity-10 text-dark border px-2 py-1">
-                                    {{ $trx->total_items }} item
+                                    {{ $trx->total_items }}
                                 </span>
                             </td>
                             <td class="text-end fw-bold text-success">
@@ -110,9 +151,9 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="8" class="text-center py-5 text-muted">
                                 <i class="bi bi-receipt fs-1 d-block mb-2 opacity-50"></i>
-                                Belum ada riwayat transaksi penjualan.
+                                Belum ada riwayat transaksi penjualan yang sesuai filter.
                             </td>
                         </tr>
                     @endforelse

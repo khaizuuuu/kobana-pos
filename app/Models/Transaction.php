@@ -19,6 +19,12 @@ class Transaction extends Model
         'transaction_time',
         'total_items',
         'total_amount',
+        'branch_id',
+        'payment_method',
+        'cash_amount',
+        'change_amount',
+        'payment_note',
+        'payment_proof',
         'created_by',
     ];
 
@@ -28,7 +34,14 @@ class Transaction extends Model
             'transaction_date' => 'date',
             'total_items' => 'integer',
             'total_amount' => 'integer',
+            'cash_amount' => 'integer',
+            'change_amount' => 'integer',
         ];
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function creator(): BelongsTo
@@ -39,6 +52,20 @@ class Transaction extends Model
     public function items(): HasMany
     {
         return $this->hasMany(TransactionItem::class);
+    }
+
+    public function getPaymentMethodLabelAttribute(): string
+    {
+        return match ($this->payment_method) {
+            'qris' => 'QRIS',
+            'transfer' => 'Transfer Bank',
+            default => 'Cash (Tunai)',
+        };
+    }
+
+    public function getPaymentProofUrlAttribute(): ?string
+    {
+        return $this->payment_proof ? asset('storage/' . $this->payment_proof) : null;
     }
 
     public function getHariIndonesiaAttribute(): string

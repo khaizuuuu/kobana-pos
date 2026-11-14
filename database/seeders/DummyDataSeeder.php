@@ -19,23 +19,62 @@ class DummyDataSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Akun Pengguna
+        // 1. Data 3 Cabang Kobana
+        $branch1 = \App\Models\Branch::updateOrCreate(
+            ['code' => 'KBN01'],
+            ['name' => 'Kobana Pusat', 'address' => 'Jl. Soekarno Hatta No. 12, Malang', 'phone' => '081234567801', 'is_active' => true]
+        );
+        $branch2 = \App\Models\Branch::updateOrCreate(
+            ['code' => 'KBN02'],
+            ['name' => 'Kobana Sukun', 'address' => 'Jl. S. Supriadi No. 45, Malang', 'phone' => '081234567802', 'is_active' => true]
+        );
+        $branch3 = \App\Models\Branch::updateOrCreate(
+            ['code' => 'KBN03'],
+            ['name' => 'Kobana Dinoyo', 'address' => 'Jl. MT Haryono No. 88, Malang', 'phone' => '081234567803', 'is_active' => true]
+        );
+        $branches = [$branch1, $branch2, $branch3];
+
+        // 2. Akun Pengguna
         $admin = User::updateOrCreate(
             ['email' => 'admin@kobana.id'],
             [
                 'name' => 'Admin Kobana',
                 'password' => Hash::make('password'),
                 'role' => 'admin',
+                'branch_id' => null, // Akses semua cabang
                 'is_active' => true,
             ]
         );
 
-        $kasir = User::updateOrCreate(
+        $kasir1 = User::updateOrCreate(
             ['email' => 'kasir@kobana.id'],
             [
-                'name' => 'Siti Kasir',
+                'name' => 'Siti Kasir (Pusat)',
                 'password' => Hash::make('password'),
                 'role' => 'kasir',
+                'branch_id' => $branch1->id,
+                'is_active' => true,
+            ]
+        );
+
+        $kasir2 = User::updateOrCreate(
+            ['email' => 'kasir2@kobana.id'],
+            [
+                'name' => 'Budi Kasir (Sukun)',
+                'password' => Hash::make('password'),
+                'role' => 'kasir',
+                'branch_id' => $branch2->id,
+                'is_active' => true,
+            ]
+        );
+
+        $kasir3 = User::updateOrCreate(
+            ['email' => 'kasir3@kobana.id'],
+            [
+                'name' => 'Dewi Kasir (Dinoyo)',
+                'password' => Hash::make('password'),
+                'role' => 'kasir',
+                'branch_id' => $branch3->id,
                 'is_active' => true,
             ]
         );
@@ -46,6 +85,7 @@ class DummyDataSeeder extends Seeder
                 'name' => 'Bapak Owner',
                 'password' => Hash::make('password'),
                 'role' => 'owner',
+                'branch_id' => null, // Akses semua cabang
                 'is_active' => true,
             ]
         );
@@ -57,15 +97,17 @@ class DummyDataSeeder extends Seeder
                 'name' => 'Admin Kobana',
                 'password' => Hash::make('admin123'),
                 'role' => 'admin',
+                'branch_id' => null,
                 'is_active' => true,
             ]
         );
         User::updateOrCreate(
             ['email' => 'kasir@kobana.test'],
             [
-                'name' => 'Kasir Kobana',
+                'name' => 'Kasir Kobana (Pusat)',
                 'password' => Hash::make('kasir123'),
                 'role' => 'kasir',
+                'branch_id' => $branch1->id,
                 'is_active' => true,
             ]
         );
@@ -181,7 +223,7 @@ class DummyDataSeeder extends Seeder
         DB::table('transactions')->delete();
         DB::table('transaction_sequences')->delete();
 
-        $userIds = [$admin->id, $kasir->id];
+        $cashiers = [$kasir1, $kasir2, $kasir3];
 
         // Loop 30 hari ke belakang
         for ($d = 0; $d < 30; $d++) {
@@ -208,6 +250,13 @@ class DummyDataSeeder extends Seeder
                 $selectedTemplate = $this->getRandomWeightedTemplate($basketTemplates);
                 $selectedCodes = $selectedTemplate['codes'];
 
+                // Kasir dan Cabang acak (Pusat, Sukun, Dinoyo)
+                $assignedKasir = $cashiers[array_rand($cashiers)];
+
+                // Metode pembayaran realistis: 60% Cash, 40% QRIS
+                $randPay = rand(1, 100);
+                $payMethod = $randPay <= 60 ? 'cash' : 'qris';
+
                 // Buat record Transaksi
                 $trx = Transaction::create([
                     'transaction_code' => $code,
@@ -215,7 +264,12 @@ class DummyDataSeeder extends Seeder
                     'transaction_time' => $timeStr,
                     'total_items' => 0,
                     'total_amount' => 0,
-                    'created_by' => $userIds[array_rand($userIds)],
+                    'branch_id' => $assignedKasir->branch_id,
+                    'payment_method' => $payMethod,
+                    'cash_amount' => 0,
+                    'change_amount' => 0,
+                    'payment_note' => null,
+                    'created_by' => $assignedKasir->id,
                     'created_at' => $currentDate->copy()->setTime($peakHour, $minute, $second),
                     'updated_at' => $currentDate->copy()->setTime($peakHour, $minute, $second),
                 ]);
@@ -244,9 +298,26 @@ class DummyDataSeeder extends Seeder
                     $totalSum += $subtotal;
                 }
 
+                // Kalkulasi uang tunai & kembalian sesuai metode pembayaran
+                if ($payMethod === 'cash') {
+                    $cashAmount = (int) (ceil($totalSum / 10000) * 10000);
+                    if ($cashAmount < $totalSum) $cashAmount += 10000;
+                    if (rand(1, 3) === 1 && $totalSum <= 40000) $cashAmount = 50000;
+                    if (rand(1, 3) === 1 && $totalSum <= 80000) $cashAmount = 100000;
+                    $changeAmount = $cashAmount - $totalSum;
+                    $paymentNote = null;
+                } else { // qris
+                    $cashAmount = $totalSum;
+                    $changeAmount = 0;
+                    $paymentNote = 'NMID: 93600' . rand(100000, 999999);
+                }
+
                 $trx->update([
                     'total_items' => $totalQty,
                     'total_amount' => $totalSum,
+                    'cash_amount' => $cashAmount,
+                    'change_amount' => $changeAmount,
+                    'payment_note' => $paymentNote,
                 ]);
             }
 
@@ -257,6 +328,59 @@ class DummyDataSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+        }
+
+        // 5.5. Buat Catatan Kas Operasional Harian (Belanja Warung & Tabungan Kasir)
+        DB::table('operational_cashes')->delete();
+
+        $expenseTemplates = [
+            ['name' => 'Beras 1 Karung (25kg)', 'category' => 'Bahan Baku', 'amount' => 340000, 'notes' => 'Toko Beras Barokah'],
+            ['name' => 'Beras 10kg Super', 'category' => 'Bahan Baku', 'amount' => 140000, 'notes' => 'Beli di pasar induk'],
+            ['name' => 'Refill Gas LPG 3kg (2 tabung)', 'category' => 'Gas & Energi', 'amount' => 42000, 'notes' => 'Pangkalan Gas Sumber Rejeki'],
+            ['name' => 'Refill Gas LPG 3kg (1 tabung)', 'category' => 'Gas & Energi', 'amount' => 21000, 'notes' => 'Warung terdekat'],
+            ['name' => 'Kantong Kresek Bening & Hitam (3 pack)', 'category' => 'Kemasan & Plastik', 'amount' => 28000, 'notes' => 'Toko Plastik Sentosa'],
+            ['name' => 'Minyak Goreng SunCo 2L (2 pouch)', 'category' => 'Bahan Baku', 'amount' => 76000, 'notes' => 'Grosir minyak goreng'],
+            ['name' => 'Gula Pasir 2kg & Teh Celup Jumbo', 'category' => 'Bahan Baku', 'amount' => 38000, 'notes' => 'Stok teh manis pelanggan'],
+            ['name' => 'Sabun Cuci Piring Sunlight 750ml & Spons', 'category' => 'Kebersihan & Sanitasi', 'amount' => 24000, 'notes' => 'Kebersihan peralatan dapur'],
+            ['name' => 'Es Batu Kristal Higienis (3 sak)', 'category' => 'Bahan Baku', 'amount' => 24000, 'notes' => 'Depot Es Kristal'],
+        ];
+
+        for ($dayOffset = 0; $dayOffset < 30; $dayOffset++) {
+            $curDate = $startDate->copy()->addDays($dayOffset);
+            $curDateStr = $curDate->toDateString();
+
+            foreach ($cashiers as $kasir) {
+                // Belanja harian kebutuhan warung (1-2 item)
+                $numExpenses = rand(1, 2);
+                for ($e = 0; $e < $numExpenses; $e++) {
+                    $tpl = $expenseTemplates[array_rand($expenseTemplates)];
+                    \App\Models\OperationalCash::create([
+                        'date' => $curDateStr,
+                        'time' => sprintf('%02d:%02d:00', rand(8, 14), rand(0, 59)),
+                        'branch_id' => $kasir->branch_id,
+                        'user_id' => $kasir->id,
+                        'type' => 'pengeluaran',
+                        'category' => $tpl['category'],
+                        'name' => $tpl['name'],
+                        'amount' => $tpl['amount'],
+                        'notes' => $tpl['notes'],
+                    ]);
+                }
+
+                // Tabungan harian kasir
+                $tabunganAmount = (rand(3, 8) * 50000);
+                \App\Models\OperationalCash::create([
+                    'date' => $curDateStr,
+                    'time' => sprintf('%02d:%02d:00', rand(20, 22), rand(0, 59)),
+                    'branch_id' => $kasir->branch_id,
+                    'user_id' => $kasir->id,
+                    'type' => 'tabungan',
+                    'category' => 'Tabungan Harian',
+                    'name' => 'Setoran Tabungan Penjualan Harian',
+                    'amount' => $tabunganAmount,
+                    'notes' => 'Disisihkan ke tabungan kas warung',
+                ]);
+            }
         }
 
         // 6. Jalankan 1 Analisis FP-Growth Awal sebagai Contoh Hasil

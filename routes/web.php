@@ -72,6 +72,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/transactions/{transaction}', [App\Http\Controllers\TransactionController::class, 'destroy'])->name('transactions.destroy');
     });
 
+    // Operational Cash (Buku Kas & Belanja Harian Warung)
+    Route::resource('operational-cash', App\Http\Controllers\OperationalCashController::class)->except(['show']);
+
     // Analysis: FP-Growth (admin & owner)
     Route::middleware('role:admin,owner')->group(function () {
         Route::get('/analysis/fp-growth', [App\Http\Controllers\FpGrowthController::class, 'index'])->name('analysis.fp-growth');

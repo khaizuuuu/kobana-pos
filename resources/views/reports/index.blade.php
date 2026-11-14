@@ -8,17 +8,36 @@
 {{-- ─── Filter ─────────────────────────────────────────────────────────── --}}
 <form method="GET" action="{{ route('reports.index') }}" class="card shadow-sm mb-4 p-3">
     <div class="row g-2 align-items-end">
-        <div class="col-sm-3">
+        <div class="col-md-2 col-sm-6">
             <label class="form-label fw-semibold small mb-1">Dari Tanggal</label>
             <input type="date" name="date_from" class="form-control form-control-sm"
                    value="{{ $dateFrom->toDateString() }}">
         </div>
-        <div class="col-sm-3">
+        <div class="col-md-2 col-sm-6">
             <label class="form-label fw-semibold small mb-1">Sampai Tanggal</label>
             <input type="date" name="date_to" class="form-control form-control-sm"
                    value="{{ $dateTo->toDateString() }}">
         </div>
-        <div class="col-sm-3">
+        <div class="col-md-2 col-sm-6">
+            <label class="form-label fw-semibold small mb-1">Cabang</label>
+            <select name="branch_id" class="form-select form-select-sm">
+                <option value="">Semua Cabang</option>
+                @foreach($branches as $b)
+                    <option value="{{ $b->id }}" {{ $branchId == $b->id ? 'selected' : '' }}>
+                        {{ $b->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <label class="form-label fw-semibold small mb-1">Metode Bayar</label>
+            <select name="payment_method" class="form-select form-select-sm">
+                <option value="">Semua Metode</option>
+                <option value="cash" {{ $paymentMethod === 'cash' ? 'selected' : '' }}>Cash (Tunai)</option>
+                <option value="qris" {{ $paymentMethod === 'qris' ? 'selected' : '' }}>QRIS</option>
+            </select>
+        </div>
+        <div class="col-md-2 col-sm-6">
             <label class="form-label fw-semibold small mb-1">Kategori</label>
             <select name="category_id" class="form-select form-select-sm">
                 <option value="">Semua Kategori</option>
@@ -29,11 +48,11 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-sm-3 d-flex gap-2">
+        <div class="col-md-2 col-sm-6 d-flex gap-2">
             <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
                 <i class="bi bi-funnel me-1"></i>Filter
             </button>
-            <a href="{{ route('reports.index') }}" class="btn btn-outline-secondary btn-sm">
+            <a href="{{ route('reports.index') }}" class="btn btn-outline-secondary btn-sm" title="Reset Filter">
                 <i class="bi bi-arrow-counterclockwise"></i>
             </a>
         </div>

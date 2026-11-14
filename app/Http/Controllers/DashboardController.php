@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Menu;
+use App\Models\OperationalCash;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
@@ -29,11 +31,23 @@ class DashboardController extends Controller
             ? Carbon::parse($request->date_to)->endOfDay()
             : Carbon::now()->endOfDay();
 
+        $user = $request->user();
+        // Branch filter: if cashier has branch_id, lock to their branch
+        if ($user && $user->isKasir() && $user->branch_id) {
+            $branchId = $user->branch_id;
+        } else {
+            $branchId = $request->input('branch_id');
+        }
+
         // ── Kartu Ringkasan ───────────────────────────────────────────────
         $baseQuery = Transaction::whereBetween('transaction_date', [
             $dateFrom->toDateString(),
             $dateTo->toDateString(),
         ]);
+
+        if ($branchId) {
+            $baseQuery->where('branch_id', $branchId);
+        }
 
         $totalOmzet        = (clone $baseQuery)->sum('total_amount');
         $totalTransactions = (clone $baseQuery)->count();
@@ -42,10 +56,33 @@ class DashboardController extends Controller
             ? (int) round($totalOmzet / $totalTransactions)
             : 0;
 
-        $omzetToday = Transaction::whereDate('transaction_date', Carbon::today()->toDateString())
-            ->sum('total_amount');
-        $trxToday = Transaction::whereDate('transaction_date', Carbon::today()->toDateString())
-            ->count();
+        $omzetTodayQ = Transaction::whereDate('transaction_date', Carbon::today()->toDateString());
+        $trxTodayQ   = Transaction::whereDate('transaction_date', Carbon::today()->toDateString());
+        if ($branchId) {
+            $omzetTodayQ->where('branch_id', $branchId);
+            $trxTodayQ->where('branch_id', $branchId);
+        }
+        $omzetToday = $omzetTodayQ->sum('total_amount');
+        $trxToday   = $trxTodayQ->count();
+
+        // Payment Methods Breakdown (Cash vs QRIS)
+        $paymentBreakdown = (clone $baseQuery)
+            ->select('payment_method', DB::raw('SUM(total_amount) as omzet'), DB::raw('COUNT(*) as total'))
+            ->groupBy('payment_method')
+            ->get()
+            ->keyBy('payment_method');
+
+        $cashExpensePeriod = OperationalCash::where('date', '>=', $dateFrom->toDateString())
+            ->where('date', '<=', $dateTo->toDateString() . ' 23:59:59')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->pengeluaran()
+            ->sum('amount');
+
+        $cashSavingsPeriod = OperationalCash::where('date', '>=', $dateFrom->toDateString())
+            ->where('date', '<=', $dateTo->toDateString() . ' 23:59:59')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->tabungan()
+            ->sum('amount');
 
         $stats = [
             'total_omzet'        => $totalOmzet,
@@ -56,10 +93,15 @@ class DashboardController extends Controller
             'trx_today'          => $trxToday,
             'total_menu'         => Menu::count(),
             'total_category'     => Category::count(),
+            'omzet_cash'         => (int) ($paymentBreakdown['cash']->omzet ?? 0),
+            'omzet_qris'         => (int) ($paymentBreakdown['qris']->omzet ?? 0),
+            'count_cash'         => (int) ($paymentBreakdown['cash']->total ?? 0),
+            'count_qris'         => (int) ($paymentBreakdown['qris']->total ?? 0),
+            'total_expense'      => (int) $cashExpensePeriod,
+            'total_savings'      => (int) $cashSavingsPeriod,
         ];
 
         // ── Tren Omzet per Hari ───────────────────────────────────────────
-        // DATE() works in both SQLite and MySQL
         $trendDays = (clone $baseQuery)
             ->select(
                 DB::raw('DATE(transaction_date) as tgl'),
@@ -71,14 +113,16 @@ class DashboardController extends Controller
             ->get();
 
         // ── Omzet per Jam (hari ini) ──────────────────────────────────────
-        // SQLite: CAST(strftime('%H', time) AS INTEGER)
-        // MySQL : HOUR(time)
         $hourExpr = $driver === 'sqlite'
             ? "CAST(strftime('%H', transaction_time) AS INTEGER)"
             : 'HOUR(transaction_time)';
 
-        $trendJam = Transaction::whereDate('transaction_date', Carbon::today()->toDateString())
-            ->select(
+        $trendJamQ = Transaction::whereDate('transaction_date', Carbon::today()->toDateString());
+        if ($branchId) {
+            $trendJamQ->where('branch_id', $branchId);
+        }
+
+        $trendJam = $trendJamQ->select(
                 DB::raw("$hourExpr as jam"),
                 DB::raw('SUM(total_amount) as omzet'),
                 DB::raw('COUNT(*) as jumlah')
@@ -93,10 +137,8 @@ class DashboardController extends Controller
             ]);
 
         // ── Omzet per Hari dalam Seminggu ─────────────────────────────────
-        // SQLite: strftime('%w', date) → 0=Sun, 1=Mon … 6=Sat
-        // MySQL : DAYOFWEEK(date)      → 1=Sun, 2=Mon … 7=Sat
-        $dayNames  = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-        $dowExpr   = $driver === 'sqlite'
+        $dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+        $dowExpr  = $driver === 'sqlite'
             ? "CAST(strftime('%w', transaction_date) AS INTEGER)"
             : 'DAYOFWEEK(transaction_date)';
 
@@ -110,14 +152,10 @@ class DashboardController extends Controller
             ->orderBy('hari_num')
             ->get()
             ->map(function ($row) use ($dayNames, $driver) {
-                // SQLite  : 0=Minggu, 1=Senin … 6=Sabtu
-                // MySQL   : 1=Minggu, 2=Senin … 7=Sabtu
                 $num = (int) $row->hari_num;
                 if ($driver === 'sqlite') {
-                    // 0→6(Minggu), 1→0(Senin) … 6→5(Sabtu)
                     $idx = $num === 0 ? 6 : ($num - 1);
                 } else {
-                    // 1→6(Minggu), 2→0(Senin) … 7→5(Sabtu)
                     $idx = $num === 1 ? 6 : ($num - 2);
                 }
                 return [
@@ -128,14 +166,19 @@ class DashboardController extends Controller
             });
 
         // ── Top 10 Menu Terlaris ──────────────────────────────────────────
-        $topMenus = TransactionItem::query()
+        $topMenusQ = TransactionItem::query()
             ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
             ->join('menus', 'transaction_items.menu_id', '=', 'menus.id')
             ->whereBetween('transactions.transaction_date', [
                 $dateFrom->toDateString(),
                 $dateTo->toDateString(),
-            ])
-            ->select(
+            ]);
+
+        if ($branchId) {
+            $topMenusQ->where('transactions.branch_id', $branchId);
+        }
+
+        $topMenus = $topMenusQ->select(
                 'menus.name as nama',
                 DB::raw('SUM(transaction_items.qty) as qty'),
                 DB::raw('SUM(transaction_items.subtotal) as omzet')
@@ -146,15 +189,20 @@ class DashboardController extends Controller
             ->get();
 
         // ── Omzet per Kategori ────────────────────────────────────────────
-        $topKategori = TransactionItem::query()
+        $topKategoriQ = TransactionItem::query()
             ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
             ->join('menus', 'transaction_items.menu_id', '=', 'menus.id')
             ->join('categories', 'menus.category_id', '=', 'categories.id')
             ->whereBetween('transactions.transaction_date', [
                 $dateFrom->toDateString(),
                 $dateTo->toDateString(),
-            ])
-            ->select(
+            ]);
+
+        if ($branchId) {
+            $topKategoriQ->where('transactions.branch_id', $branchId);
+        }
+
+        $topKategori = $topKategoriQ->select(
                 'categories.name as nama',
                 DB::raw('SUM(transaction_items.subtotal) as omzet')
             )
@@ -163,21 +211,24 @@ class DashboardController extends Controller
             ->get();
 
         // ── Pre-build chart-ready arrays (simple scalars, safe for @json) ─
-        $chartTrendLabels  = $trendDays->pluck('tgl')->values()->all();
-        $chartTrendOmzet   = $trendDays->pluck('omzet')->map(fn($v) => (int) $v)->values()->all();
-        $chartTrendJumlah  = $trendDays->pluck('jumlah')->map(fn($v) => (int) $v)->values()->all();
+        $chartTrendLabels = $trendDays->pluck('tgl')->values()->all();
+        $chartTrendOmzet  = $trendDays->pluck('omzet')->map(fn($v) => (int) $v)->values()->all();
+        $chartTrendJumlah = $trendDays->pluck('jumlah')->map(fn($v) => (int) $v)->values()->all();
 
-        $chartJamLabels    = $trendJam->map(fn($r) => str_pad($r['jam'], 2, '0', STR_PAD_LEFT) . ':00')->values()->all();
-        $chartJamOmzet     = $trendJam->pluck('omzet')->map(fn($v) => (int) $v)->values()->all();
+        $chartJamLabels   = $trendJam->map(fn($r) => str_pad($r['jam'], 2, '0', STR_PAD_LEFT) . ':00')->values()->all();
+        $chartJamOmzet    = $trendJam->pluck('omzet')->map(fn($v) => (int) $v)->values()->all();
 
-        $chartHariLabels   = collect($trendHari)->pluck('hari')->values()->all();
-        $chartHariOmzet    = collect($trendHari)->pluck('omzet')->map(fn($v) => (int) $v)->values()->all();
+        $chartHariLabels  = collect($trendHari)->pluck('hari')->values()->all();
+        $chartHariOmzet   = collect($trendHari)->pluck('omzet')->map(fn($v) => (int) $v)->values()->all();
 
-        $chartMenuLabels   = $topMenus->pluck('nama')->values()->all();
-        $chartMenuOmzet    = $topMenus->pluck('omzet')->map(fn($v) => (int) $v)->values()->all();
+        $chartMenuLabels  = $topMenus->pluck('nama')->values()->all();
+        $chartMenuOmzet   = $topMenus->pluck('omzet')->map(fn($v) => (int) $v)->values()->all();
 
-        $chartKatLabels    = $topKategori->pluck('nama')->values()->all();
-        $chartKatOmzet     = $topKategori->pluck('omzet')->map(fn($v) => (int) $v)->values()->all();
+        $chartKatLabels   = $topKategori->pluck('nama')->values()->all();
+        $chartKatOmzet    = $topKategori->pluck('omzet')->map(fn($v) => (int) $v)->values()->all();
+
+        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $selectedBranchId = $branchId;
 
         return view('dashboard.index', compact(
             'stats',
@@ -188,6 +239,8 @@ class DashboardController extends Controller
             'trendHari',
             'topMenus',
             'topKategori',
+            'branches',
+            'selectedBranchId',
             'chartTrendLabels', 'chartTrendOmzet', 'chartTrendJumlah',
             'chartJamLabels',   'chartJamOmzet',
             'chartHariLabels',  'chartHariOmzet',

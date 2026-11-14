@@ -56,6 +56,22 @@
                         @enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label for="branch_id" class="form-label fw-semibold">Penugasan Cabang</label>
+                        <select name="branch_id" id="branch_id" class="form-select @error('branch_id') is-invalid @enderror">
+                            <option value="">-- Tidak Terikat Cabang (Kantor Pusat / Global) --</option>
+                            @foreach($branches as $branch)
+                                <option value="{{ $branch->id }}" {{ old('branch_id') == $branch->id ? 'selected' : '' }}>
+                                    {{ $branch->name }} ({{ $branch->code }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Khusus kasir, pilih cabang penugasan agar transaksi otomatis tercatat ke cabang ini.</div>
+                        @error('branch_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <div class="mb-4">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active', '1') ? 'checked' : '' }}>

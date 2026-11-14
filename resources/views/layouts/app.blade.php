@@ -44,6 +44,10 @@
                     <i class="bi bi-receipt"></i>
                     <span>Riwayat Transaksi</span>
                 </a>
+                <a href="{{ route('operational-cash.index') }}" class="nav-link {{ request()->routeIs('operational-cash.*') ? 'active' : '' }}">
+                    <i class="bi bi-wallet2"></i>
+                    <span>Kas & Belanja Harian</span>
+                </a>
 
                 <div class="sidebar-heading">Master Data</div>
                 <a href="{{ route('menus.index') }}" class="nav-link {{ request()->routeIs('menus.*') ? 'active' : '' }}">
@@ -103,6 +107,9 @@
                 @endif
                 <a href="{{ route('transactions.index') }}" class="nav-link {{ request()->routeIs('transactions.index') ? 'active' : '' }}">
                     <i class="bi bi-receipt"></i> Riwayat Transaksi
+                </a>
+                <a href="{{ route('operational-cash.index') }}" class="nav-link {{ request()->routeIs('operational-cash.*') ? 'active' : '' }}">
+                    <i class="bi bi-wallet2"></i> Kas & Belanja Harian
                 </a>
 
                 <div class="sidebar-heading">Master Data</div>
