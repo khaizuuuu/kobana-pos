@@ -12,6 +12,7 @@ Selamat datang di direktori dokumentasi perancangan sistem **Kobana Fried Chicke
 | **Entity Relationship Diagram (ERD)** | [`docs/ERD.md`](./ERD.md) | Pemodelan data konseptual, logikal, dan fisik lengkap dengan diagram Mermaid ERD, kamus data (*data dictionary*), dan integritas referensial. |
 | **Data Flow Diagram (DFD)** | [`docs/DFD.md`](./DFD.md) | Diagram aliran data Level 0 (*Context Diagram*), Level 1 (Sistem Utama), dan Level 2 (Dekomposisi Proses Transaksi, Kas, dan FP-Growth). |
 | **Use Case Diagram & Spesifikasi** | [`docs/USE_CASE.md`](./USE_CASE.md) | Diagram interaksi aktor (Kasir, Admin, Owner) serta skenario rinci (*main flow*, *alternate flow*, *precondition*, *postcondition*). |
+| **Activity Diagram (Diagram Aktivitas)** | [`docs/ACTIVITY_DIAGRAM.md`](./ACTIVITY_DIAGRAM.md) | Pemodelan alur kerja dinamis 7 proses bisnis utama (login & cabang, transaksi tunai, transaksi QRIS & kamera bukti, kas harian warung, pipeline data mining FP-Growth, dashboard analitik, dan impor dataset). |
 | **Arsitektur & Diagram Sekuensial** | [`docs/ARCHITECTURE_AND_SEQUENCE.md`](./ARCHITECTURE_AND_SEQUENCE.md) | Desain arsitektur MVC tiga lapis, pipeline algoritma FP-Growth, dan *sequence diagrams* alur transaksi QRIS kamera serta kas harian. |
 
 ---

@@ -918,15 +918,21 @@
     "semantic_hash": "46f23ee11d1ac44c012a1ed00e81028d"
   },
   "docs/README.md": {
-    "mtime": 1794626512.5978017,
-    "seen": 1794626791.722403,
-    "ast_hash": "0a12c491b060465dfbc1922a3ad3b208",
-    "semantic_hash": "0a12c491b060465dfbc1922a3ad3b208"
+    "mtime": 1794626998.7124653,
+    "seen": 1794627127.1434786,
+    "ast_hash": "8ee6b70a9cf58492ccac86f976c1645a",
+    "semantic_hash": "8ee6b70a9cf58492ccac86f976c1645a"
   },
   "docs/USE_CASE.md": {
     "mtime": 1794626678.0461514,
     "seen": 1794626791.7224255,
     "ast_hash": "c529b21163ec2482113b325670ad6e3c",
     "semantic_hash": "c529b21163ec2482113b325670ad6e3c"
+  },
+  "docs/ACTIVITY_DIAGRAM.md": {
+    "mtime": 1794626974.7619421,
+    "seen": 1794627127.143472,
+    "ast_hash": "8de450984c52b72e4777c5ba35772d96",
+    "semantic_hash": "8de450984c52b72e4777c5ba35772d96"
   }
 }
