@@ -23,6 +23,7 @@ services:
       - .:/var/www
       - storage_data:/var/www/storage/app/public
       - storage_logs:/var/www/storage/logs
+      - ./docker/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
     depends_on:
       db:
         condition: service_healthy
@@ -97,6 +98,7 @@ services:
       - .:/var/www
       - storage_data:/var/www/storage/app/public
       - storage_logs:/var/www/storage/logs
+      - ./docker/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
     depends_on:
       db:
         condition: service_healthy
@@ -120,6 +122,7 @@ services:
       - .:/var/www
       - storage_data:/var/www/storage/app/public
       - storage_logs:/var/www/storage/logs
+      - ./docker/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
     depends_on:
       db:
         condition: service_healthy

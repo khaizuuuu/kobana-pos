@@ -21,15 +21,5 @@ if [ ! -L /var/www/public/storage ]; then
     php artisan storage:link || true
 fi
 
-# Tunggu database MySQL siap jika DB_HOST didefinisikan (maksimal 15x percobaan / 30 detik)
-if [ -n "$DB_HOST" ] && [ "$DB_CONNECTION" = "mysql" ]; then
-    echo "Menunggu koneksi MySQL di $DB_HOST:${DB_PORT:-3306}..."
-    RETRY=0
-    until mysqladmin ping -h"$DB_HOST" -P"${DB_PORT:-3306}" --silent >/dev/null 2>&1 || [ $RETRY -ge 15 ]; do
-        sleep 2
-        RETRY=$((RETRY + 1))
-    done
-    echo "Layanan MySQL siap atau batas tunggu tercapai, melanjutkan proses..."
-fi
-
+echo "Inisialisasi selesai. Menjalankan layanan..."
 exec "$@"
