@@ -1,0 +1,149 @@
+services:
+  # -------------------------------------------------------------
+  # 1. Aplikasi Utama (PHP-FPM 8.3 Alpine)
+  # -------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: kobana-app
+    restart: unless-stopped
+    working_dir: /var/www
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-kobana_pos}
+      - DB_USERNAME=${DB_USERNAME:-kobana_user}
+      - DB_PASSWORD=${DB_PASSWORD:-kobana_secret_pass}
+      - QUEUE_CONNECTION=database
+    volumes:
+      - .:/var/www
+      - storage_data:/var/www/storage/app/public
+      - storage_logs:/var/www/storage/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - kobana-net
+
+  # -------------------------------------------------------------
+  # 2. Web Server (Nginx Alpine)
+  # -------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: kobana-nginx
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-80}:80"
+      - "${APP_SSL_PORT:-443}:443"
+    volumes:
+      - .:/var/www:ro
+      - storage_data:/var/www/storage/app/public:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/nginx/logs:/var/log/nginx
+    depends_on:
+      - app
+    networks:
+      - kobana-net
+
+  # -------------------------------------------------------------
+  # 3. Database Server (MySQL 8.0)
+  # -------------------------------------------------------------
+  db:
+    image: mysql:8.0
+    container_name: kobana-db
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-kobana_pos}
+      MYSQL_USER: ${DB_USERNAME:-kobana_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-kobana_secret_pass}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret_pass_123}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    ports:
+      # Terikat hanya ke 127.0.0.1 agar tidak bisa di-scan dari internet publik
+      - "127.0.0.1:${FORWARD_DB_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_secret_pass_123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - kobana-net
+
+  # -------------------------------------------------------------
+  # 4. Pekerja Antrean Latar Belakang (Laravel Queue Worker)
+  # Untuk pemrosesan algoritma FP-Growth & Impor Dataset Excel
+  # -------------------------------------------------------------
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: kobana-queue
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=300
+    volumes:
+      - .:/var/www
+      - storage_data:/var/www/storage/app/public
+      - storage_logs:/var/www/storage/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+    networks:
+      - kobana-net
+
+  # -------------------------------------------------------------
+  # 5. Penjadwal Tugas Otomatis (Laravel Scheduler / Cron)
+  # -------------------------------------------------------------
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: kobana-scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    volumes:
+      - .:/var/www
+      - storage_data:/var/www/storage/app/public
+      - storage_logs:/var/www/storage/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+    networks:
+      - kobana-net
+
+# ---------------------------------------------------------------
+# Volume Persisten Docker
+# ---------------------------------------------------------------
+volumes:
+  # Data tabel MySQL persisten
+  db_data:
+    driver: local
+  # Berkas foto upload (Bukti QRIS & Struk belanja fisik) aman saat rebuild
+  storage_data:
+    driver: local
+  # Berkas log Laravel
+  storage_logs:
+    driver: local
+
+# ---------------------------------------------------------------
+# Jaringan Internal Terisolasi
+# ---------------------------------------------------------------
+networks:
+  kobana-net:
+    driver: bridge

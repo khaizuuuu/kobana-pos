@@ -14,6 +14,7 @@ Selamat datang di direktori dokumentasi perancangan sistem **Kobana Fried Chicke
 | **Use Case Diagram & Spesifikasi** | [`docs/USE_CASE.md`](./USE_CASE.md) | Diagram interaksi aktor (Kasir, Admin, Owner) serta skenario rinci (*main flow*, *alternate flow*, *precondition*, *postcondition*). |
 | **Activity Diagram (Diagram Aktivitas)** | [`docs/ACTIVITY_DIAGRAM.md`](./ACTIVITY_DIAGRAM.md) | Pemodelan alur kerja dinamis 7 proses bisnis utama (login & cabang, transaksi tunai, transaksi QRIS & kamera bukti, kas harian warung, pipeline data mining FP-Growth, dashboard analitik, dan impor dataset). |
 | **Arsitektur & Diagram Sekuensial** | [`docs/ARCHITECTURE_AND_SEQUENCE.md`](./ARCHITECTURE_AND_SEQUENCE.md) | Desain arsitektur MVC tiga lapis, pipeline algoritma FP-Growth, dan *sequence diagrams* alur transaksi QRIS kamera serta kas harian. |
+| **Panduan Deploy VPS & Docker** | [`docs/DOCKER_DEPLOYMENT_GUIDE.md`](./DOCKER_DEPLOYMENT_GUIDE.md) | Panduan komprehensif deployment VPS menggunakan Docker Compose (Nginx Alpine, PHP 8.3 FPM Alpine, MySQL 8.0, Queue Worker, & Scheduler). |
 
 ---
 
