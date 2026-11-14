@@ -69,8 +69,9 @@ services:
       - db_data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
     ports:
-      # Terikat hanya ke 127.0.0.1 agar tidak bisa di-scan dari internet publik
-      - "127.0.0.1:${FORWARD_DB_PORT:-3306}:3306"
+      # Terikat ke ${DB_BIND_IP:-127.0.0.1} secara default (Sangat aman untuk koneksi via SSH Tunnel MySQL Workbench)
+      # Jika ingin koneksi langsung (Standard TCP/IP publik), ubah DB_BIND_IP=0.0.0.0 di file .env
+      - "${DB_BIND_IP:-127.0.0.1}:${FORWARD_DB_PORT:-3306}:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_secret_pass_123}"]
       interval: 10s

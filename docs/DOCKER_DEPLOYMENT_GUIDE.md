@@ -230,3 +230,121 @@ docker compose exec app php artisan view:cache
 docker compose restart queue scheduler
 ```
 Semua data database (`db_data`) dan foto bukti transaksi QRIS (`storage_data`) tetap **100% aman dan tidak terhapus** karena tersimpan di Volume Persisten Docker.
+
+---
+
+## 6. Panduan Menghubungkan MySQL Workbench Terbaru ke Database VPS Docker
+
+Aplikasi Kobana POS menggunakan MySQL 8.0 di dalam kontainer Docker. Anda dapat mengelola database, menjalankan query analisis, melihat tabel transaksi, maupun melakukan backup/restore menggunakan **MySQL Workbench** versi terbaru melalui 2 metode di bawah ini.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    MySQL Workbench (PC Anda)                 │
+└──────────────┬───────────────────────────────┬───────────────┘
+               │                               │
+  [Metode 1: SSH Tunnel]                       │ [Metode 2: Direct TCP/IP]
+  Port 22 SSH (Encrypted)                      │ Port 3306 (Publik)
+  100% Aman & Terisolasi                       │ Membutuhkan UFW Whitelist
+               ▼                               ▼
+┌───────────────────────────────┐     ┌───────────────────────────────┐
+│     VPS SSH Daemon (Port 22)  │     │     VPS Firewall (UFW 3306)   │
+└──────────────┬────────────────┘     └──────────────┬────────────────┘
+               │                                     │
+               ▼ (Forward ke 127.0.0.1:3306)         │
+┌────────────────────────────────────────────────────┴────────────────┐
+│                   Kontainer Docker: kobana-db (MySQL 8.0)           │
+│     - skip-name-resolve = 1 (Koneksi Workbench Instan Tanpa Lag)    │
+│     - interactive_timeout = 28800 (Sesi GUI Tidak Pernah Terputus)  │
+│     - max_allowed_packet = 64M (Dukungan Ekspor/Impor Skema Besar)  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 6.1 Metode 1: Standard TCP/IP over SSH (Rekomendasi Utama & Paling Aman)
+
+Metode ini adalah **standar industri terbaik**. Anda **TIDAK PERLU** membuka port 3306 ke internet publik (tetap menggunakan `DB_BIND_IP=127.0.0.1`), sehingga database Anda 100% kebal dari serangan pemindaian bot dan brute-force hacker.
+
+#### Langkah-langkah di MySQL Workbench:
+1. Buka aplikasi **MySQL Workbench** di komputer Anda.
+2. Pada layar utama, klik tombol **`+`** di sebelah teks **MySQL Connections** untuk membuat koneksi baru.
+3. Isi parameter form sebagai berikut:
+   - **Connection Name:** `Kobana POS VPS (SSH Tunnel)`
+   - **Connection Method:** Pilih dropdown **`Standard TCP/IP over SSH`**
+   - **SSH Hostname:** Masukkan `IP_VPS_ANDA:22` *(Contoh: `103.187.145.20:22`)*
+   - **SSH Username:** Masukkan user SSH VPS Anda *(Contoh: `root` atau username sudo Anda)*
+   - **SSH Password:** Klik *Store in Vault...* lalu ketikkan kata sandi SSH VPS Anda (atau pilih file `.pem` / `.id_rsa` di **SSH Keyfile** jika menggunakan autentikasi SSH Key).
+   - **MySQL Hostname:** Ketik **`127.0.0.1`**
+   - **MySQL Server Port:** Ketik **`3306`**
+   - **Username:** `kobana_user` *(atau `root`)*
+   - **Password:** Klik tombol *Store in Vault...*, lalu masukkan kata sandi database yang Anda buat di file `.env` (`DB_PASSWORD` atau `DB_ROOT_PASSWORD`).
+   - **Default Schema:** `kobana_pos`
+4. Klik tombol **Test Connection** di bagian pojok kanan bawah.
+5. Dialog akan muncul: **"Successfully made the MySQL connection"**.
+6. Klik **OK** untuk menyimpan. Sekarang Anda dapat membuka koneksi dan mengelola seluruh tabel POS, cabang, dan data mining FP-Growth secara visual!
+
+---
+
+### 6.2 Metode 2: Standard TCP/IP (Direct Connection Tanpa SSH)
+
+Gunakan metode ini jika Anda tidak memiliki akses SSH langsung atau ingin menghubungkan aplikasi desktop/BI tools pihak ketiga via IP publik.
+
+#### Langkah 1: Atur Binding IP di VPS
+Buka file `.env` di direktori proyek VPS:
+```bash
+cd /var/www/kobana-pos
+nano .env
+```
+Ubah parameter `DB_BIND_IP`:
+```dotenv
+DB_BIND_IP=0.0.0.0
+FORWARD_DB_PORT=3306
+```
+Simpan file (`CTRL + O`, `Enter`, `CTRL + X`), lalu terapkan perubahan kontainer:
+```bash
+docker compose up -d db
+```
+
+#### Langkah 2: Buka Port 3306 pada Firewall UFW
+Demi keamanan, sangat disarankan untuk hanya mengizinkan IP publik komputer Anda:
+```bash
+# Opsi Rekomendasi (Hanya IP Rumah / Kantor Anda yang boleh connect):
+ufw allow from IP_PUBLIK_KOMPUTER_ANDA to any port 3306 proto tcp
+
+# Atau Opsi Terbuka (Buka untuk seluruh IP publik):
+ufw allow 3306/tcp
+ufw status
+```
+
+#### Langkah 3: Konfigurasi di MySQL Workbench
+1. Klik tanda **`+`** pada MySQL Connections.
+2. Isi data:
+   - **Connection Name:** `Kobana POS VPS (Direct)`
+   - **Connection Method:** Pilih **`Standard TCP/IP`**
+   - **Hostname:** `IP_VPS_ANDA`
+   - **Port:** `3306`
+   - **Username:** `kobana_user`
+   - **Password:** Masukkan password database Anda di *Store in Vault...*
+   - **Default Schema:** `kobana_pos`
+3. Masuk ke tab **Advanced**:
+   - Pada kotak isian **Others:**, ketikkan parameter:
+     ```
+     allowPublicKeyRetrieval=true
+     ```
+4. Masuk ke tab **SSL**:
+   - **Use SSL:** Pilih `If available` atau `Require`.
+5. Klik **Test Connection**, lalu klik **OK**.
+
+---
+
+### 6.3 Optimasi Khusus Docker untuk MySQL Workbench yang Telah Diterapkan
+
+Di dalam konfigurasi Docker Kobana POS (`docker/mysql/my.cnf`), beberapa parameter penting telah diaktifkan khusus untuk kenyamanan dan kestabilan MySQL Workbench:
+
+1. **`skip-name-resolve = 1`**:
+   - Mematikan DNS reverse-lookup pada setiap koneksi masuk.
+   - Hasil: Membuka daftar tabel (*Object Browser*) dan skema database di MySQL Workbench berlangsung instan tanpa delay 5-10 detik.
+2. **`interactive_timeout = 28800` & `wait_timeout = 28800` (8 Jam)**:
+   - Mencegah error menyebalkan: *"Error Code: 2006. MySQL server has gone away"*. Sesi Workbench Anda tidak akan terputus meskipun ditinggal istirahat atau tidak ada query selama berjam-jam.
+3. **`max_allowed_packet = 64M`**:
+   - Menghindari error saat Anda melakukan ekspor atau impor file `.sql` backup berukuran besar langsung melalui menu *Data Export / Data Import* di MySQL Workbench.
