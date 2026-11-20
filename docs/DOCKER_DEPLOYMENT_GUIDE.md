@@ -177,19 +177,24 @@ Aplikasi Kobana POS sekarang sudah aktif dan dapat diakses melalui browser di:
 
 ---
 
-## 4. Konfigurasi Domain & HTTPS / SSL Gratis (Certbot Let's Encrypt)
+## 4. Konfigurasi Domain Gratis (DuckDNS) & HTTPS / SSL Let's Encrypt
 
-Jika Anda sudah menghubungkan Domain (misal `pos.kobana.id`) ke IP VPS Anda:
+Anda dapat menggunakan subdomain gratis dari **DuckDNS** (misal: `kobana-pos.duckdns.org`) dan mengaktifkan HTTPS (gembok hijau) secara otomatis:
 
-1. Install Certbot di VPS:
-   ```bash
-   apt install -y certbot python3-certbot-nginx
-   ```
-2. Buat sertifikat SSL:
-   ```bash
-   certbot certonly --standalone -d pos.kobana.id
-   ```
-3. Pasang sertifikat SSL pada Nginx Docker atau gunakan **Nginx Proxy Manager** / **Cloudflare Full SSL** untuk kemudahan pembaruan otomatis tanpa mematikan kontainer.
+### 4.1 Langkah di Website DuckDNS:
+1. Buka [https://www.duckdns.org](https://www.duckdns.org) dan login (bisa via Google/GitHub).
+2. Di bagian **domains**, buat subdomain baru (misal: `kobana-pos`).
+3. Pada kolom **current IP**, masukkan IP VPS Anda: `43.157.206.88`.
+4. Klik **update ip**. Domain Anda (`kobana-pos.duckdns.org`) kini resmi mengarah ke VPS Anda.
+
+### 4.2 Pasang SSL Otomatis Menggunakan Skrip `setup-ssl.sh`:
+Telah disediakan skrip otomatis `setup-ssl.sh` di root proyek. Jalankan di terminal VPS:
+```bash
+cd /web-apps/kobana
+git pull origin main
+sudo bash setup-ssl.sh namadomainanda.duckdns.org
+```
+*Skrip ini akan secara otomatis: memasang Certbot, membuat sertifikat SSL Let's Encrypt gratis, mengatur Nginx HTTPS di port 443 dengan redirect otomatis dari HTTP port 80, memperbarui `APP_URL` di `.env`, membersihkan cache Laravel, dan mendaftarkan cron job auto-renewal SSL.*
 
 ---
 
